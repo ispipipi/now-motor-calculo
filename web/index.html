@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#006aa6">
+    <title>NOW | Carga de remuneraciones</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <a class="brand" href="index.html" aria-label="NOW inicio">
+          <span class="brand-mark" aria-hidden="true"><span>H</span><b>NOW</b><i>R</i></span>
+          <span class="brand-copy"><strong>NOW</strong><small>Remuneraciones</small></span>
+        </a>
+        <div class="topbar-meta">
+          <span class="environment-dot"></span>
+          <span>Entorno de revisión</span>
+          <button class="icon-button" type="button" title="Ayuda" aria-label="Ayuda">?</button>
+        </div>
+      </header>
+
+      <main>
+        <section class="intro-section">
+          <div>
+            <p class="eyebrow">Paso 01 <span></span> Fuentes de información</p>
+            <h1>Preparemos el período de pago.</h1>
+            <p class="intro-copy">Carga los archivos de origen y revisa su estructura antes de calcular los conceptos remuneracionales.</p>
+          </div>
+          <div class="period-control">
+            <label for="period">Período de proceso</label>
+            <div class="period-input-wrap">
+              <input id="period" type="month" value="2026-07">
+              <span class="calendar-icon" aria-hidden="true">▣</span>
+            </div>
+            <span class="period-status"><span></span> Borrador</span>
+          </div>
+        </section>
+
+        <section class="stepper" aria-label="Progreso del proceso">
+          <div class="step active" data-step="1"><span>1</span><div><strong>Cargar fuentes</strong><small>Archivos y formatos</small></div></div>
+          <div class="step-line"></div>
+          <div class="step" data-step="2"><span>2</span><div><strong>Revisar datos</strong><small>Validaciones y alertas</small></div></div>
+          <div class="step-line"></div>
+          <div class="step" data-step="3"><span>3</span><div><strong>Calcular conceptos</strong><small>Preparación de resultados</small></div></div>
+        </section>
+
+        <section class="notice-bar" aria-label="Estado del proceso">
+          <span class="notice-icon">i</span>
+          <div><strong>El bono de producción se incorpora como fuente.</strong><span>El motor del bono permanece fuera de esta etapa.</span></div>
+          <span class="notice-tag">Motor en espera</span>
+        </section>
+
+        <section class="section-heading">
+          <div><p class="section-kicker">Fuentes principales</p><h2>Archivos del período</h2></div>
+          <p class="required-note"><span>*</span> Fuente requerida para continuar</p>
+        </section>
+
+        <section class="source-grid" id="source-grid"></section>
+
+        <section class="section-heading secondary-heading">
+          <div><p class="section-kicker">Extensiones futuras</p><h2>Otras fuentes</h2></div>
+          <span class="coming-soon">Se habilitan en las siguientes etapas</span>
+        </section>
+
+        <section class="future-grid">
+          <article class="future-card"><div class="future-icon blue">Q</div><div><strong>Calidad</strong><p>Fuente para el módulo de calidad y sus validaciones.</p></div><span class="future-status">Próxima etapa</span></article>
+          <article class="future-card"><div class="future-icon orange">TOA</div><div><strong>TOA</strong><p>Conexión y fuente operacional pendiente de definición.</p></div><span class="future-status">Por definir</span></article>
+          <article class="future-card"><div class="future-icon green">+</div><div><strong>Otros respaldos</strong><p>Archivos adicionales que RRHH incorpore al proceso.</p></div><span class="future-status">Próxima etapa</span></article>
+        </section>
+
+        <section class="validation-section" aria-live="polite">
+          <div class="validation-header">
+            <div><p class="section-kicker">Control de carga</p><h2>Resumen de validación</h2></div>
+            <div class="validation-metrics">
+              <div><strong id="loaded-count">0</strong><span>Fuentes cargadas</span></div>
+              <div><strong id="row-count">0</strong><span>Filas detectadas</span></div>
+              <div><strong id="warning-count">0</strong><span>Alertas</span></div>
+            </div>
+          </div>
+          <div class="validation-empty" id="validation-empty"><span class="empty-icon">↑</span><p>Aún no hay archivos cargados</p><small>La revisión aparecerá aquí al seleccionar una fuente.</small></div>
+          <div class="validation-list" id="validation-list"></div>
+        </section>
+
+        <section class="action-bar">
+          <button class="button ghost" type="button" id="clear-button">Limpiar carga</button>
+          <div class="action-right"><span id="action-message">Carga Novedades y Pago TAC para continuar.</span><button class="button primary" type="button" id="continue-button" disabled>Continuar a revisión <span>→</span></button></div>
+        </section>
+
+        <section class="review-stage" id="review-stage" hidden aria-live="polite">
+          <div class="review-stage-head">
+            <div><p class="section-kicker">Paso 02 <span class="eyebrow-line"></span> Validación previa</p><h2>Revisar los datos antes de calcular.</h2><p>Confirma que las fuentes correspondan al período y revisa las alertas detectadas. Ningún concepto se calcula desde esta vista.</p></div>
+            <div class="review-stage-badge"><span>✓</span><strong>Fuentes recibidas</strong><small id="review-stage-status">Pendientes de revisión</small></div>
+          </div>
+          <div class="review-summary-cards">
+            <div><span>Fuentes obligatorias</span><strong id="review-required-count">0 / 2</strong></div>
+            <div><span>Registros leídos</span><strong id="review-row-count">0</strong></div>
+            <div><span>Alertas para revisar</span><strong id="review-warning-count">0</strong></div>
+          </div>
+          <div class="review-list-heading"><h3>Detalle de las fuentes</h3><span>Origen y estado de lectura</span></div>
+          <div class="review-items" id="review-items"></div>
+          <div class="review-stage-footer"><button class="button ghost" type="button" id="back-button">← Volver a la carga</button><div class="stage-footer-actions"><span>El cálculo se habilitará después de validar las fuentes.</span><button class="button primary" type="button" id="review-to-calculation-button">Continuar al cálculo <span>→</span></button></div></div>
+        </section>
+
+        <section class="calculation-stage" id="calculation-stage" hidden aria-live="polite">
+          <div class="calculation-stage-head">
+            <div><p class="section-kicker">Paso 03 <span class="eyebrow-line"></span> Preparación del cálculo</p><h2>Fuentes listas para calcular.</h2><p>La revisión terminó. En esta etapa dejamos preparados los conceptos que recibirán las reglas de cálculo en el siguiente desarrollo.</p></div>
+            <div class="calculation-stage-badge"><span>3</span><strong>Preparación lista</strong><small>Motor de conceptos pendiente</small></div>
+          </div>
+          <div class="calculation-checklist">
+            <article><span class="check-symbol">✓</span><div><strong>Bono de producción</strong><p>Se incorpora como fuente con RUT, nombre y monto.</p></div><span class="status-pill valid">Fuente recibida</span></article>
+            <article><span class="check-symbol">✓</span><div><strong>Novedades RRHH</strong><p>Haberes, descuentos y días informados por RRHH quedan disponibles para imputación.</p></div><span class="status-pill valid">Fuente revisada</span></article>
+            <article><span class="check-symbol">✓</span><div><strong>Pago TAC</strong><p>La base y la estructura del archivo quedan disponibles para los conceptos relacionados.</p></div><span class="status-pill valid">Fuente revisada</span></article>
+          </div>
+          <div class="calculation-notice"><span class="notice-icon">i</span><div><strong>El cálculo todavía no se ejecuta.</strong><span>La conexión con el motor de conceptos y la generación de resultados se habilitarán en la siguiente etapa.</span></div></div>
+          <div class="calculation-stage-footer"><button class="button ghost" type="button" id="calculation-back-button">← Volver a revisión</button><div class="stage-footer-actions"><span>Las fuentes quedan disponibles para la siguiente ejecución.</span><button class="button primary" type="button" id="calculate-combustible-button">Calcular combustible/TAG <span>→</span></button></div></div>
+        </section>
+
+        <section class="results-stage" id="combustible-results-stage" hidden aria-live="polite">
+          <div class="results-stage-head">
+            <div><p class="section-kicker">Paso 03 <span class="eyebrow-line"></span> Resultado de concepto</p><h2>Combustible y TAG calculado.</h2><p>Resultado construido desde la hoja Variables del archivo Pago TAC, con el detalle de cada técnico y la trazabilidad de los valores utilizados.</p></div>
+            <div class="results-stage-badge"><span>✓</span><strong>Cálculo completado</strong><small id="combustible-result-status">Variables procesadas</small></div>
+          </div>
+          <div class="result-summary-cards">
+            <div><span>Técnicos procesados</span><strong id="combustible-technician-count">0</strong></div>
+            <div><span>Total asignación + adicional</span><strong id="combustible-total-amount">$0</strong></div>
+            <div><span>Saldo del concepto</span><strong id="combustible-balance-amount">$0</strong></div>
+          </div>
+          <div class="formula-strip"><strong>Regla aplicada</strong><code>Total = Asignación de combustible y TAG + Adicional</code><span>Saldo = Total − Consumo</span></div>
+          <div class="results-list-heading"><h3>Detalle por técnico</h3><span id="combustible-source-name">Hoja Variables</span></div>
+          <div class="results-table-wrap" id="combustible-results-table"></div>
+          <div class="calculation-notice result-note"><span class="notice-icon">i</span><div><strong>Resultado listo para revisión.</strong><span>Los saldos positivos se informan como movilización especial y los negativos como eficiencia de consumo, según las reglas actuales.</span></div></div>
+          <div class="results-stage-footer"><button class="button ghost" type="button" id="combustible-back-button">← Volver a preparación</button><div class="stage-footer-actions"><span>El resultado queda disponible para la etapa de preliquidación.</span><button class="button primary" type="button" id="continue-concurso-button">Continuar con Concurso/HHEE <span>→</span></button></div></div>
+        </section>
+
+        <section class="concurso-hhee-stage" id="concurso-hhee-stage" hidden aria-live="polite">
+          <div class="concurso-hhee-head">
+            <div><p class="section-kicker">Paso 03 <span class="eyebrow-line"></span> Otros conceptos</p><h2>Concurso y HHEE preparados.</h2><p>Separamos el valor de Concurso informado en Pago TAC de las horas extraordinarias informadas por RRHH en Novedades.</p></div>
+            <div class="concurso-hhee-badge"><span>✓</span><strong>Fuentes identificadas</strong><small>Horas y monto disponibles</small></div>
+          </div>
+          <div class="concept-source-grid">
+            <article class="concept-source-panel"><div class="concept-source-title"><div class="future-icon orange">$</div><div><h3>Concurso</h3><span id="concurso-source-name">Variables</span></div></div><div class="concept-source-summary"><span>Técnicos con valor informado</span><strong id="concurso-technician-count">0</strong><span>Total concurso informado</span><strong id="concurso-total-amount">$0</strong></div><div class="concept-table-wrap" id="concurso-results-table"></div></article>
+            <article class="concept-source-panel"><div class="concept-source-title"><div class="future-icon blue">HH</div><div><h3>HHEE</h3><span id="hhee-source-name">Novedades · HHEE</span></div></div><div class="concept-source-summary"><span>Registros informados por RRHH</span><strong id="hhee-record-count">0</strong><span>Total de horas informadas</span><strong id="hhee-total-hours">0</strong><span>Total monto HHEE</span><strong id="hhee-total-amount">$0</strong></div><div class="concept-table-wrap" id="hhee-results-table"></div></article>
+          </div>
+          <div class="calculation-notice result-note"><span class="notice-icon">i</span><div><strong>HHEE se toma desde RRHH.</strong><span>La cantidad viene de Novedades. El monto usa el valor informado en Variables cuando existe y, si no viene, aplica la fórmula de la hoja Pre_Liqu TAC: sueldo base ÷ 180 × 1,5 × horas.</span></div></div>
+          <div class="results-stage-footer"><button class="button ghost" type="button" id="concurso-hhee-back-button">← Volver a Combustible/TAG</button><div class="stage-footer-actions"><span>Los conceptos quedan disponibles para la siguiente etapa.</span><button class="button primary" type="button" id="continue-preliquidation-button">Ver preliquidación <span>→</span></button></div></div>
+        </section>
+
+        <section class="preliquidation-stage" id="preliquidation-stage" hidden aria-live="polite">
+          <div class="preliquidation-head">
+            <div><p class="section-kicker">Paso 03 <span class="eyebrow-line"></span> Consolidación</p><h2>Preliquidación del trabajador.</h2><p>La vista sigue la estructura de la hoja `Pre_Liqu TAC`: identificación, producción, operatividad, otros conceptos, eficiencia y resumen.</p></div>
+            <div class="preliquidation-badge"><span>3</span><strong>Borrador de salida</strong><small id="preliquidation-period">Período 2026-07</small></div>
+          </div>
+          <div class="preliquidation-controls"><label for="preliquidation-worker">Trabajador</label><select id="preliquidation-worker"></select><span id="preliquidation-counter">0 trabajadores</span><button class="button primary preliquidation-print" type="button" id="print-preliquidation-button" disabled>Imprimir / guardar PDF</button></div>
+          <div class="preliquidation-identity"><div><span>RUT</span><strong id="preliquidation-rut">-</strong></div><div><span>Nombre TAC</span><strong id="preliquidation-name">-</strong></div><div><span>Supervisor</span><strong id="preliquidation-supervisor">-</strong></div><div><span>Área / región</span><strong id="preliquidation-area">-</strong></div></div>
+          <div class="preliquidation-detail" id="preliquidation-detail"></div>
+          <div class="calculation-notice result-note"><span class="notice-icon">i</span><div><strong>Esta vista todavía no genera el archivo Nubox o REX+.</strong><span>Primero se revisa la imputación con el formato de `Pre_Liqu TAC`. Las HHEE muestran horas, valor hora extra, monto y origen del monto.</span></div></div>
+          <div class="results-stage-footer"><button class="button ghost" type="button" id="preliquidation-back-button">← Volver a Concurso/HHEE</button><span>La salida final se habilitará después de validar esta vista.</span></div>
+        </section>
+      </main>
+
+      <footer class="footer"><span>NOW Remuneraciones</span><span>Plataforma modular de proceso</span></footer>
+    </div>
+    <script src="app.js"></script>
+  </body>
+</html>

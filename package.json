@@ -1,0 +1,21 @@
+{
+  "name": "now-motor-calculo",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Motor modular de calculo para variables remuneracionales NOW.",
+  "type": "module",
+  "scripts": {
+    "validate": "node src/cli.js validate",
+    "validate:pedro-reviewed": "node src/cli.js validate --ajustes data/assumptions/julio-2026-ajustes-pedro-pendientes.json --out outputs/2026-07-pedro-reviewed",
+    "inspect": "node src/cli.js inspect",
+    "serve": "node web/server.mjs",
+    "test": "node --test",
+    "check": "node --check src/cli.js"
+  },
+  "dependencies": {
+    "xlsx": "^0.18.5"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

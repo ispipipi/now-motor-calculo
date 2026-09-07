@@ -1,0 +1,15 @@
+node_modules/
+outputs/
+tmp/
+
+# Fuentes reales con PII/remuneraciones. Pasarlas por CLI, no versionarlas.
+*.xlsx
+*.xls
+*.csv
+*.tsv
+
+# Credenciales/entorno local
+.env
+*.local.json
+service-account*.json
+llave_*.private.json
