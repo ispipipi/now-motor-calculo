@@ -48,7 +48,7 @@
 
         <section class="notice-bar" aria-label="Estado del proceso">
           <span class="notice-icon">i</span>
-          <div><strong>El bono de producción se incorpora como fuente.</strong><span>El motor del bono permanece fuera de esta etapa.</span></div>
+          <div><strong>REX+ será la fuente principal de remuneraciones.</strong><span>Los datos operativos se complementan desde Pago TAC y las novedades de RRHH.</span></div>
           <span class="notice-tag">Motor en espera</span>
         </section>
 
@@ -85,7 +85,7 @@
 
         <section class="action-bar">
           <button class="button ghost" type="button" id="clear-button">Limpiar carga</button>
-          <div class="action-right"><span id="action-message">Carga Novedades y Pago TAC para continuar.</span><button class="button primary" type="button" id="continue-button" disabled>Continuar a revisión <span>→</span></button></div>
+          <div class="action-right"><span id="action-message">Carga el Libro REX+ y Pago TAC para continuar.</span><button class="button primary" type="button" id="continue-button" disabled>Continuar a revisión <span>→</span></button></div>
         </section>
 
         <section class="review-stage" id="review-stage" hidden aria-live="polite">
@@ -109,9 +109,9 @@
             <div class="calculation-stage-badge"><span>3</span><strong>Preparación lista</strong><small>Motor de conceptos pendiente</small></div>
           </div>
           <div class="calculation-checklist">
-            <article><span class="check-symbol">✓</span><div><strong>Bono de producción</strong><p>Se incorpora como fuente con RUT, nombre y monto.</p></div><span class="status-pill valid">Fuente recibida</span></article>
-            <article><span class="check-symbol">✓</span><div><strong>Novedades RRHH</strong><p>Haberes, descuentos y días informados por RRHH quedan disponibles para imputación.</p></div><span class="status-pill valid">Fuente revisada</span></article>
-            <article><span class="check-symbol">✓</span><div><strong>Pago TAC</strong><p>La base y la estructura del archivo quedan disponibles para los conceptos relacionados.</p></div><span class="status-pill valid">Fuente revisada</span></article>
+            <article><span class="check-symbol">✓</span><div><strong>Libro de remuneraciones REX+</strong><p>Haberes, descuentos, días y líquido informado quedan como base de remuneraciones.</p></div><span class="status-pill valid">Fuente principal</span></article>
+            <article><span class="check-symbol">✓</span><div><strong>Pago TAC</strong><p>La producción, combustible/TAG, Concurso y la estructura de preliquidación quedan disponibles.</p></div><span class="status-pill valid">Fuente operativa</span></article>
+            <article><span class="check-symbol">✓</span><div><strong>Novedades RRHH</strong><p>Se incorpora como complemento cuando aporta HHEE, vacaciones, licencias u otros conceptos.</p></div><span class="status-pill valid">Complementaria</span></article>
           </div>
           <div class="calculation-notice"><span class="notice-icon">i</span><div><strong>El cálculo todavía no se ejecuta.</strong><span>La conexión con el motor de conceptos y la generación de resultados se habilitarán en la siguiente etapa.</span></div></div>
           <div class="calculation-stage-footer"><button class="button ghost" type="button" id="calculation-back-button">← Volver a revisión</button><div class="stage-footer-actions"><span>Las fuentes quedan disponibles para la siguiente ejecución.</span><button class="button primary" type="button" id="calculate-combustible-button">Calcular combustible/TAG <span>→</span></button></div></div>

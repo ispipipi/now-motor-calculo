@@ -5,6 +5,9 @@ Motor local y modular para reproducir el calculo de variables remuneracionales N
 ## Alcance actual
 
 - Lee las fuentes Excel reales desde rutas locales.
+- La plataforma web usa el libro de remuneraciones de REX+ como fuente principal de haberes, descuentos, días y líquido.
+- `Pago TAC` mantiene la información operativa y la estructura de la preliquidación.
+- `Novedades RRHH` queda como fuente complementaria para HHEE, vacaciones, licencias y conceptos que todavía no estén en REX+.
 - Calcula RGU por tecnico desde hoja `RGU`.
 - Aplica trabajos especiales GSA/Avanzadas como complemento diario hasta 4,5 RGU cuando no viene `Pts`.
 - Calcula productividad, calidad, llave de tabla doble entrada, valor 100% movil y valor pago por asistencia.

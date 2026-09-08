@@ -1,19 +1,28 @@
 const sourceDefinitions = {
-  novedades: {
-    label: 'Novedades RRHH',
-    description: 'Haberes, descuentos y días informados por RRHH.',
-    short: 'RRHH',
+  rex: {
+    label: 'Libro de remuneraciones REX+',
+    description: 'Fuente principal de haberes, descuentos, días y líquido informado por REX+.',
+    short: 'REX+',
     required: true,
     accept: '.xlsx,.xls,.csv',
-    sheets: ['VIATICO', 'ANTICIPO', 'PRESTAMO CAJA', 'AHORRO', 'CARGA FAMILIAR', 'VACACIONES', 'RETENCION JUDICIAL', 'SEGURO', 'LICENCIAS', 'HHEE', 'TAG'],
+    sheets: ['DETALLE'],
+    columns: ['Nombre', 'Rut', 'Sueldo Base', 'Sueldo Líquido'],
   },
   pago: {
     label: 'Pago TAC',
-    description: 'Base de pago y estructura de la preliquidación.',
+    description: 'Datos operativos y estructura de la preliquidación.',
     short: 'TAC',
     required: true,
     accept: '.xlsx,.xls,.csv',
     sheets: ['LIBRO REM', 'VARIABLES', 'NOMINA RRHH', 'PRE_LIQ TAC'],
+  },
+  novedades: {
+    label: 'Novedades RRHH (complemento)',
+    description: 'Detalle complementario para HHEE, vacaciones, licencias y otras novedades.',
+    short: 'RRHH',
+    required: false,
+    accept: '.xlsx,.xls,.csv',
+    sheets: ['VIATICO', 'ANTICIPO', 'PRESTAMO CAJA', 'AHORRO', 'CARGA FAMILIAR', 'VACACIONES', 'RETENCION JUDICIAL', 'SEGURO', 'LICENCIAS', 'HHEE', 'TAG'],
   },
   bono: {
     label: 'Bono de producción',
@@ -25,6 +34,10 @@ const sourceDefinitions = {
     columns: ['RUT', 'NOMBRE', 'MONTO'],
   },
 };
+
+const requiredSourceIds = Object.entries(sourceDefinitions)
+  .filter(([, definition]) => definition.required)
+  .map(([id]) => id);
 
 const state = { sources: {} };
 let xlsxLoadPromise;
@@ -173,7 +186,8 @@ async function inspectFile(file, definition) {
 function findHeaderIndex(matrix) {
   const detailedHeaderIndex = matrix.findIndex((row) => {
     const headers = row.map(normalize);
-    return headers.includes('RUT') && headers.includes('NOMBRE TAC') && headers.includes('SUELDO BASE');
+    const hasName = headers.includes('NOMBRE TAC') || headers.includes('NOMBRE');
+    return headers.includes('RUT') && hasName && headers.includes('SUELDO BASE');
   });
   return detailedHeaderIndex >= 0
     ? detailedHeaderIndex
@@ -235,9 +249,9 @@ function renderValidation() {
   document.querySelector('#warning-count').textContent = formatNumber(warnings);
   validationEmpty.hidden = loaded > 0;
   validationList.innerHTML = entries.map(([id, item]) => validationRow(id, item)).join('');
-  const requiredReady = ['novedades', 'pago'].every((id) => state.sources[id]);
+  const requiredReady = requiredSourceIds.every((id) => state.sources[id]);
   continueButton.disabled = !requiredReady;
-  document.querySelector('#action-message').textContent = requiredReady ? 'Las fuentes requeridas están cargadas.' : 'Carga Novedades y Pago TAC para continuar.';
+  document.querySelector('#action-message').textContent = requiredReady ? 'Las fuentes requeridas están cargadas.' : 'Carga el Libro REX+ y Pago TAC para continuar.';
   if (!reviewStage.hidden) renderReview();
 }
 
@@ -259,8 +273,8 @@ function renderReview() {
   const entries = Object.entries(state.sources);
   const warnings = entries.reduce((total, [, item]) => total + (item.report.warnings?.length || 0), 0);
   const rows = entries.reduce((total, [, item]) => total + (item.report.rows || 0), 0);
-  const required = ['novedades', 'pago'].filter((id) => state.sources[id]).length;
-  document.querySelector('#review-required-count').textContent = `${required} / 2`;
+  const required = requiredSourceIds.filter((id) => state.sources[id]).length;
+  document.querySelector('#review-required-count').textContent = `${required} / ${requiredSourceIds.length}`;
   document.querySelector('#review-row-count').textContent = formatNumber(rows);
   document.querySelector('#review-warning-count').textContent = formatNumber(warnings);
   document.querySelector('#review-stage-status').textContent = warnings ? 'Revisar alertas' : 'Sin alertas de estructura';
@@ -406,9 +420,11 @@ function isRutLike(value) {
 function buildHheeCalculationContext(variables) {
   const novedades = state.sources.novedades?.report;
   const pago = state.sources.pago?.report;
+  const rex = state.sources.rex?.report;
   const salaryByRut = new Map();
   const variableByRut = new Map();
   const employeeSheets = [
+    rex?.sheets.find((sheet) => normalize(sheet.name) === 'DETALLE'),
     novedades?.sheets.find((sheet) => normalize(sheet.name) === 'FUNCIONARIO'),
     pago?.sheets.find((sheet) => normalize(sheet.name) === 'NOMINA RRHH'),
   ].filter(Boolean);
@@ -502,6 +518,7 @@ function normalizeRutKey(value) {
 
 function buildPreliquidationResult() {
   const pago = state.sources.pago?.report;
+  const rex = state.sources.rex?.report?.sheets.find((sheet) => normalize(sheet.name) === 'DETALLE');
   const variables = pago?.sheets.find((sheet) => normalize(sheet.name) === 'VARIABLES');
   const libroRem = pago?.sheets.find((sheet) => normalize(sheet.name) === 'LIBRO REM');
   const hheeContext = buildHheeCalculationContext(variables);
@@ -516,9 +533,30 @@ function buildPreliquidationResult() {
       key,
       rut: String(rut).trim(),
       nombre: String(nombre ?? '').trim(),
+      remuneracionesDesdeRex: false,
+      remuneracionesFuente: '',
+      rexEmpresa: '',
+      rexProceso: '',
+      rexSede: '',
+      rexFechaInicio: '',
+      rexFechaTermino: '',
+      rexTipoContrato: '',
+      rexCentroCosto: '',
+      rexAgrupacion: '',
+      rexHaberesExentos: 0,
+      rexSumaHaberes: 0,
+      rexTotalRebajas: 0,
+      rexAfectoAfp: 0,
+      rexAfectoCesantia: 0,
+      rexAfectoImpuesto: 0,
+      rexAlcanceLiquido: 0,
+      rexAporteCaf: 0,
       supervisor: '',
       area: '',
       region: '',
+      sede: '',
+      centroCosto: '',
+      tipoContrato: '',
       estado: '',
       sueldoBase: 0,
       diasOperando: 0,
@@ -664,6 +702,74 @@ function buildPreliquidationResult() {
     return row;
   }
 
+  const rexColumns = new Set((rex?.header ?? []).map(normalize));
+  const hasRexColumn = (names) => names.some((name) => rexColumns.has(normalize(name)));
+  const readRexAmount = (record, names, fallback = 0) => {
+    const value = pickColumn(record, names);
+    return String(value).trim() === '' ? fallback : parseAmount(value);
+  };
+  const readRexText = (record, names, fallback = '') => {
+    const value = pickColumn(record, names);
+    return String(value).trim() || fallback;
+  };
+
+  for (const record of rex?.records ?? []) {
+    const target = ensureRow(pickColumn(record, ['Rut', 'RUT']), pickColumn(record, ['Nombre', 'NOMBRE']));
+    if (!target) continue;
+    target.remuneracionesDesdeRex = true;
+    target.remuneracionesFuente = 'Libro de remuneraciones REX+';
+    target.rexEmpresa = readRexText(record, ['Nombre empresa']);
+    target.rexProceso = readRexText(record, ['Proceso']);
+    target.rexSede = readRexText(record, ['Sede']);
+    target.sede = target.rexSede;
+    target.rexFechaInicio = readRexText(record, ['Fecha Inicio']);
+    target.rexFechaTermino = readRexText(record, ['Fecha Término']);
+    target.rexTipoContrato = readRexText(record, ['Tipo Contrato']);
+    target.rexCentroCosto = readRexText(record, ['Centro Costo']);
+    target.rexAgrupacion = readRexText(record, ['Agrupación']);
+    target.cargo = readRexText(record, ['Cargo'], target.cargo);
+    target.sueldoBase = readRexAmount(record, ['Sueldo Base'], target.sueldoBase);
+    target.gratificacion = readRexAmount(record, ['Gratificación'], target.gratificacion);
+    target.diasTrabajadosMes = readRexAmount(record, ['Días Trabajados'], target.diasTrabajadosMes);
+    target.licencias = readRexAmount(record, ['Dias con Licencia Medica'], target.licencias);
+    target.asignacionFamiliar = readRexAmount(record, ['Cargas Familiares Simples'], target.asignacionFamiliar);
+    target.afp = readRexAmount(record, ['Cotizacion AFP'], target.afp);
+    target.totalSalud = readRexAmount(record, ['Cotizacion SALUD'], target.totalSalud);
+    target.afc = readRexAmount(record, ['Seguro de Cesantia'], target.afc);
+    target.ahorroVoluntario = readRexAmount(record, ['APVI Ahorro voluntario mensual'], target.ahorroVoluntario);
+    target.anticipoRemuneraciones = readRexAmount(record, ['Anticipo'], target.anticipoRemuneraciones);
+    target.prestamos = readRexAmount(record, ['Creditos personales CCAF'], target.prestamos);
+    target.cajaCompensacion = readRexAmount(record, ['Ahorro en CCAF'], target.cajaCompensacion);
+    target.totalHaberesNoImponibles = readRexAmount(record, ['Haberes Exentos'], target.totalHaberesNoImponibles);
+    target.totalHaberes = readRexAmount(record, ['Suma Haberes'], target.totalHaberes);
+    target.totalDescuentos = readRexAmount(record, ['Total Rebajas'], target.totalDescuentos);
+    target.totalHaberesImponibles = readRexAmount(record, ['Total imponible sin tope'], target.totalHaberesImponibles);
+    target.alcanceLiquido = readRexAmount(record, ['Alcance Líquido'], target.alcanceLiquido);
+    target.sueldoLiquido = readRexAmount(record, ['Sueldo Líquido'], target.sueldoLiquido);
+    target.saludInstitucion = readRexText(record, ['Inst. Salud'], target.saludInstitucion);
+    target.afpInstitucion = readRexText(record, ['AFP'], target.afpInstitucion);
+    target.rexHaberesExentos = target.totalHaberesNoImponibles;
+    target.rexSumaHaberes = target.totalHaberes;
+    target.rexTotalRebajas = target.totalDescuentos;
+    target.rexAfectoAfp = readRexAmount(record, ['Afecto AFP']);
+    target.rexAfectoCesantia = readRexAmount(record, ['Afecto Cesantía']);
+    target.rexAfectoImpuesto = readRexAmount(record, ['Afecto Impuesto']);
+    target.rexAlcanceLiquido = target.alcanceLiquido;
+    target.rexAporteCaf = readRexAmount(record, ['Aporte a CCAF']);
+    target.totalIngresos = target.rexSumaHaberes;
+    target.totalDescuentosPrevisionales = roundAmount(target.afp + target.totalSalud + target.afc + target.ahorroVoluntario);
+    if (hasRexColumn(['Tipo Contrato'])) target.tipoContrato = target.rexTipoContrato;
+    if (hasRexColumn(['Centro Costo'])) target.centroCosto = target.rexCentroCosto;
+    if (hasRexColumn(['Bono de Producción', 'Bono producción'])) target.bonoReferencia = readRexAmount(record, ['Bono de Producción', 'Bono producción']);
+    if (hasRexColumn(['Horas Extra', 'HHEE', 'Monto HHEE'])) target.hheeMontoLibro = readRexAmount(record, ['Horas Extra', 'Monto HHEE', 'HHEE']);
+    if (hasRexColumn(['Semana Corrida'])) target.semanaCorrida = readRexAmount(record, ['Semana Corrida']);
+    if (hasRexColumn(['Vacaciones'])) target.vacacionesMonto = readRexAmount(record, ['Vacaciones']);
+    if (hasRexColumn(['Aguinaldo'])) target.aguinaldo = readRexAmount(record, ['Aguinaldo']);
+    if (hasRexColumn(['Movilización especial'])) target.movilizacionEspecial = readRexAmount(record, ['Movilización especial']);
+    if (hasRexColumn(['Desgaste de herramientas'])) target.desgasteHerramientasLibro = readRexAmount(record, ['Desgaste de herramientas']);
+    if (hasRexColumn(['Viáticos'])) target.viaticosLibro = readRexAmount(record, ['Viáticos']);
+  }
+
   const consolidado = pago?.sheets.find((sheet) => normalize(sheet.name) === 'CONSOLIDADO');
   const productionByRut = new Map();
   for (const record of consolidado?.records ?? []) {
@@ -693,8 +799,10 @@ function buildPreliquidationResult() {
     if (!target) continue;
     target.sueldoBase ||= hheeContext.salaryByRut.get(target.key) || 0;
     target.supervisor ||= String(pickColumn(record, ['Supervisor', 'SUPERVISOR'])).trim();
-    target.area ||= String(pickColumn(record, ['Area', 'Área'])).trim();
-    target.region ||= String(pickColumn(record, ['REGION', 'Región', 'Region'])).trim();
+    const variableArea = String(pickColumn(record, ['Area', 'Área'])).trim();
+    const variableRegion = String(pickColumn(record, ['REGION', 'Región', 'Region'])).trim();
+    if (variableArea) target.area = variableArea;
+    if (variableRegion) target.region = variableRegion;
     target.estado ||= String(pickColumn(record, ['Estado', 'ESTADO'])).trim();
     target.antiguedadMeses = parseAmount(pickColumn(record, ['Aniguedad Meses', 'Antigüedad Meses']));
     target.totalRgu = parseAmount(pickColumn(record, ['Total RGU']));
@@ -790,45 +898,49 @@ function buildPreliquidationResult() {
     if (!target) continue;
     target.diasOperando = parseAmount(pickColumn(record, ['Dias Operando']));
     target.estadoFinal = String(pickColumn(record, ['Estado Final de mes'])).trim();
-    target.cargo = String(pickColumn(record, ['Cargo'])).trim();
-    target.sueldoBase ||= parseAmount(pickColumn(record, ['Sueldo Base']));
-    target.bonoReferencia = parseAmount(pickColumn(record, ['Bono de Producción']));
-    target.semanaCorrida = parseAmount(pickColumn(record, ['Semana Corrida']));
-    target.vacacionesMonto = parseAmount(pickColumn(record, ['Vacaciones']));
-    target.hheeMontoLibro = parseAmount(pickColumn(record, ['Horas Extra']));
-    target.otrosDiferenciaSueldo = parseAmount(pickColumn(record, ['Otros (Diferencia sueldo)']));
-    target.aguinaldo = parseAmount(pickColumn(record, ['Aguinaldo']));
-    target.totalIngresos = parseAmount(pickColumn(record, ['Total Ingresos']));
-    target.gratificacion = parseAmount(pickColumn(record, ['Gratificación']));
-    target.totalHaberesImponibles = parseAmount(pickColumn(record, ['Total Haberes Imponibles']));
-    target.colacionEspecial = parseAmount(pickColumn(record, ['Colación especial']));
-    target.movilizacionEspecial = parseAmount(pickColumn(record, ['Movilización especial']));
-    target.desgasteHerramientasLibro = parseAmount(pickColumn(record, ['Desgaste de herramientas']));
-    target.viaticosLibro = parseAmount(pickColumn(record, ['Viáticos']));
-    target.asignacionFamiliar = parseAmount(pickColumn(record, ['Asignación Familiar']));
-    target.totalHaberesNoImponibles = parseAmount(pickColumn(record, ['Total Haberes no imponibles']));
-    target.totalHaberes = parseAmount(pickColumn(record, ['Total Haberes']));
-    target.saludTipo = String(pickColumn(record, ['Tipo descuento salud'])).trim();
-    target.montoPactadoSalud = parseAmount(pickColumn(record, ['Monto pactado']));
-    target.totalPactadoSalud = parseAmount(pickColumn(record, ['Total Pactado']));
-    target.totalSalud = parseAmount(pickColumn(record, ['Total Salud']));
-    target.afpInstitucion = String(pickColumn(record, ['AFP Ins'])).trim();
-    target.afp = parseAmount(pickColumn(record, ['AFP']));
-    target.afc = parseAmount(pickColumn(record, ['AFC']));
-    target.ahorroVoluntario = parseAmount(pickColumn(record, ['Ahorro voluntario']));
-    target.totalDescuentosPrevisionales = parseAmount(pickColumn(record, ['Total descuentos previsionales']));
-    target.alcanceLiquido = parseAmount(pickColumn(record, ['Alcance Liquido']));
-    target.anticipoRemuneraciones = parseAmount(pickColumn(record, ['Anticipo remuneraciones']));
-    target.prestamos = parseAmount(pickColumn(record, ['Prestamos']));
-    target.cajaCompensacion = parseAmount(pickColumn(record, ['Caja de compensación']));
-    target.saldoEficiencia = parseAmount(pickColumn(record, ['Saldo eficiencia de consumo']));
-    target.prestamoSolidario = parseAmount(pickColumn(record, ['Prestamo solidario (3%)']));
-    target.anticipoAguinaldo = parseAmount(pickColumn(record, ['Anticipo Aguinaldo']));
-    target.retenciones = parseAmount(pickColumn(record, ['Retenciones']));
-    target.prestamoFonasa = parseAmount(pickColumn(record, ['Prestamo Fonza', 'Prestamo Fonasa']));
-    target.anticipoViatico = parseAmount(pickColumn(record, ['Anticipo Viatico']));
-    target.totalDescuentos = parseAmount(pickColumn(record, ['Total Descuentos']));
-    target.sueldoLiquido = parseAmount(pickColumn(record, ['Sueldo liquido']));
+    const libroCargo = String(pickColumn(record, ['Cargo'])).trim();
+    if (!target.cargo || !target.remuneracionesDesdeRex) target.cargo = libroCargo;
+    const hasRexPayroll = target.remuneracionesDesdeRex;
+    if (!hasRexPayroll) {
+      target.sueldoBase ||= parseAmount(pickColumn(record, ['Sueldo Base']));
+      target.gratificacion = parseAmount(pickColumn(record, ['Gratificación']));
+      target.totalIngresos = parseAmount(pickColumn(record, ['Total Ingresos']));
+      target.totalHaberesImponibles = parseAmount(pickColumn(record, ['Total Haberes Imponibles']));
+      target.colacionEspecial = parseAmount(pickColumn(record, ['Colación especial']));
+      target.movilizacionEspecial = parseAmount(pickColumn(record, ['Movilización especial']));
+      target.desgasteHerramientasLibro = parseAmount(pickColumn(record, ['Desgaste de herramientas']));
+      target.viaticosLibro = parseAmount(pickColumn(record, ['Viáticos']));
+      target.asignacionFamiliar = parseAmount(pickColumn(record, ['Asignación Familiar']));
+      target.totalHaberesNoImponibles = parseAmount(pickColumn(record, ['Total Haberes no imponibles']));
+      target.totalHaberes = parseAmount(pickColumn(record, ['Total Haberes']));
+      target.saludTipo = String(pickColumn(record, ['Tipo descuento salud'])).trim();
+      target.montoPactadoSalud = parseAmount(pickColumn(record, ['Monto pactado']));
+      target.totalPactadoSalud = parseAmount(pickColumn(record, ['Total Pactado']));
+      target.totalSalud = parseAmount(pickColumn(record, ['Total Salud']));
+      target.afpInstitucion = String(pickColumn(record, ['AFP Ins'])).trim();
+      target.afp = parseAmount(pickColumn(record, ['AFP']));
+      target.afc = parseAmount(pickColumn(record, ['AFC']));
+      target.ahorroVoluntario = parseAmount(pickColumn(record, ['Ahorro voluntario']));
+      target.totalDescuentosPrevisionales = parseAmount(pickColumn(record, ['Total descuentos previsionales']));
+      target.alcanceLiquido = parseAmount(pickColumn(record, ['Alcance Liquido']));
+      target.anticipoRemuneraciones = parseAmount(pickColumn(record, ['Anticipo remuneraciones']));
+      target.prestamos = parseAmount(pickColumn(record, ['Prestamos']));
+      target.cajaCompensacion = parseAmount(pickColumn(record, ['Caja de compensación']));
+      target.saldoEficiencia = parseAmount(pickColumn(record, ['Saldo eficiencia de consumo']));
+      target.prestamoSolidario = parseAmount(pickColumn(record, ['Prestamo solidario (3%)']));
+      target.anticipoAguinaldo = parseAmount(pickColumn(record, ['Anticipo Aguinaldo']));
+      target.retenciones = parseAmount(pickColumn(record, ['Retenciones']));
+      target.prestamoFonasa = parseAmount(pickColumn(record, ['Prestamo Fonza', 'Prestamo Fonasa']));
+      target.anticipoViatico = parseAmount(pickColumn(record, ['Anticipo Viatico']));
+      target.totalDescuentos = parseAmount(pickColumn(record, ['Total Descuentos']));
+      target.sueldoLiquido = parseAmount(pickColumn(record, ['Sueldo liquido']));
+    }
+    if (!hasRexColumn(['Bono de Producción', 'Bono producción'])) target.bonoReferencia = parseAmount(pickColumn(record, ['Bono de Producción']));
+    if (!hasRexColumn(['Semana Corrida'])) target.semanaCorrida = parseAmount(pickColumn(record, ['Semana Corrida']));
+    if (!hasRexColumn(['Vacaciones'])) target.vacacionesMonto = parseAmount(pickColumn(record, ['Vacaciones']));
+    if (!hasRexColumn(['Horas Extra', 'HHEE', 'Monto HHEE'])) target.hheeMontoLibro = parseAmount(pickColumn(record, ['Horas Extra']));
+    if (!hasRexColumn(['Otros (Diferencia sueldo)'])) target.otrosDiferenciaSueldo = parseAmount(pickColumn(record, ['Otros (Diferencia sueldo)']));
+    if (!hasRexColumn(['Aguinaldo'])) target.aguinaldo = parseAmount(pickColumn(record, ['Aguinaldo']));
     target.diferencia = parseAmount(pickColumn(record, ['Diferencia']));
     target.alcanceSinBonos = parseAmount(pickColumn(record, ['Alcance sin bonos']));
     target.ingresoEmpresaPx = parseAmount(pickColumn(record, ['Ingreso Empresa (Px)']));
@@ -910,6 +1022,7 @@ function buildPreliquidationResult() {
   }
 
   const rows = [...consolidated.values()].map((row) => {
+    if (!row.area) row.area = row.sede || row.centroCosto;
     const totalMonetario = row.bono + row.movilizacionEspecial + row.eficienciaConsumo + row.concurso + row.hheeMonto;
     return {
       ...row,
@@ -987,9 +1100,23 @@ function renderPreliquidationSheet(row) {
       <div><span>Nombre TAC</span><strong>${escapeHtml(row.nombre || '-')}</strong></div>
       <div><span>Supervisor</span><strong>${escapeHtml(row.supervisor || '-')}</strong></div>
       <div><span>Cargo</span><strong>${escapeHtml(row.cargo || '-')}</strong></div>
-      <div><span>Área / región</span><strong>${escapeHtml([row.area, row.region].filter(Boolean).join(' / ') || '-')}</strong></div>
+      <div><span>Área / región</span><strong>${escapeHtml([row.area || row.sede, row.region || row.centroCosto].filter(Boolean).join(' / ') || '-')}</strong></div>
       <div><span>Estado</span><strong>${escapeHtml(row.estadoFinal || row.estado || '-')}</strong></div>
     </div>
+    ${row.remuneracionesDesdeRex ? renderPreliqSheetPanel('REMUNERACIONES REX+', [
+      ['Fuente', row.remuneracionesFuente],
+      ['Empresa', row.rexEmpresa || '-'],
+      ['Proceso', row.rexProceso || period],
+      ['Sede', row.rexSede || row.sede || '-'],
+      ['Tipo contrato', row.rexTipoContrato || row.tipoContrato || '-'],
+      ['Centro costo', row.rexCentroCosto || row.centroCosto || '-'],
+      ['Días trabajados', preliqNumber(row.diasTrabajadosMes)],
+      ['Días con licencia médica', preliqNumber(row.licencias)],
+      ['Suma haberes informada', preliqMoney(row.rexSumaHaberes)],
+      ['Aporte CCAF empleador', preliqMoney(row.rexAporteCaf)],
+      ['Total rebajas informado', preliqMoney(row.rexTotalRebajas)],
+      ['Sueldo líquido informado', preliqMoney(row.sueldoLiquido)],
+    ], 'preliq-panel-wide preliq-panel-source') : ''}
     <div class="preliq-sheet-grid">
       <section class="preliq-sheet-panel preliq-panel-wide"><h3>PRODUCCIÓN</h3><div class="preliq-production-tables">${renderPreliqTable(['Descripción', 'Q actividades', 'Total RGU'], activityRows)}${renderPreliqTable(['Descripción', 'RGU por actividad'], activitySummaryRows)}</div>${renderPreliqTable(['Descripción', 'Planificación', 'Resultado'], planningRows)}${renderPreliqTable(['Descripción', 'Valor'], [
         ['Total RGU', preliqNumber(row.totalRgu)],
