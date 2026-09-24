@@ -3,164 +3,158 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="theme-color" content="#006aa6">
-    <title>NOW | Carga de remuneraciones</title>
+    <meta name="theme-color" content="#0b8cc1">
+    <title>NOW | Variables remuneracionales</title>
     <link rel="stylesheet" href="styles.css">
   </head>
   <body>
     <div class="app-shell">
-      <header class="topbar">
-        <a class="brand" href="index.html" aria-label="NOW inicio">
-          <span class="brand-mark" aria-hidden="true"><span>H</span><b>NOW</b><i>R</i></span>
-          <span class="brand-copy"><strong>NOW</strong><small>Remuneraciones</small></span>
+      <aside class="sidebar" aria-label="Navegación principal">
+        <a class="sidebar-brand" href="#inicio" aria-label="NOW Remuneraciones">
+          <img src="assets/now-logo.png" alt="NOW">
+          <span><strong>NOW</strong><small>Remuneraciones</small></span>
         </a>
-        <div class="topbar-meta">
-          <span class="environment-dot"></span>
-          <span>Entorno de revisión</span>
-          <button class="icon-button" type="button" title="Ayuda" aria-label="Ayuda">?</button>
+
+        <div class="sidebar-context">
+          <span class="context-label">PERÍODO ACTIVO</span>
+          <strong id="sidebar-period">Agosto 2026</strong>
+          <span class="status-dot"><i></i> Borrador</span>
         </div>
-      </header>
 
-      <main>
-        <section class="intro-section">
+        <nav class="sidebar-nav">
+          <span class="nav-label">Proceso mensual</span>
+          <a class="nav-item active" href="#inicio" data-nav="inicio"><span class="nav-icon">⌂</span><span>Resumen</span></a>
+          <a class="nav-item" href="#fuentes" data-nav="fuentes"><span class="nav-icon">⇧</span><span>Fuentes de información</span></a>
+          <a class="nav-item" href="#calculo" data-nav="calculo"><span class="nav-icon">∑</span><span>Cálculo de conceptos</span></a>
+          <a class="nav-item" href="#ingreso-supervisor" data-nav="ingreso-supervisor"><span class="nav-icon">✎</span><span>Ingreso supervisor</span></a>
+          <a class="nav-item" href="#revision" data-nav="revision"><span class="nav-icon">✓</span><span>Revisión y aprobación</span><span class="nav-count" id="pending-count">0</span></a>
+          <a class="nav-item" href="#comparacion" data-nav="comparacion"><span class="nav-icon">↔</span><span>Comparación piloto</span></a>
+        </nav>
+
+        <div class="sidebar-divider"></div>
+        <nav class="sidebar-nav">
+          <span class="nav-label">Administración</span>
+          <a class="nav-item" href="#mantenedores" data-nav="mantenedores"><span class="nav-icon">⚙</span><span>Mantenedores</span></a>
+          <a class="nav-item" href="#historial" data-nav="historial"><span class="nav-icon">◷</span><span>Historial de cargas</span></a>
+        </nav>
+
+        <div class="sidebar-footer">
+          <div class="user-avatar" id="profile-avatar">S</div>
+          <div class="profile-switcher"><label for="profile-select">Perfil de prueba</label><select id="profile-select"><option value="supervisor">Supervisor</option><option value="rrhh">RRHH</option><option value="pedro">Pedro</option></select></div>
+          <button class="more-button" type="button" title="Más opciones" aria-label="Más opciones">⋯</button>
+        </div>
+      </aside>
+
+      <main class="main-content" id="inicio">
+        <header class="page-header">
           <div>
-            <p class="eyebrow">Paso 01 <span></span> Fuentes de información</p>
-            <h1>Preparemos el período de pago.</h1>
-            <p class="intro-copy">Carga los archivos de origen y revisa su estructura antes de calcular los conceptos remuneracionales.</p>
+            <p class="breadcrumb">NOW Remuneraciones <span>/</span> Proceso mensual</p>
+            <h1>Variables remuneracionales</h1>
+            <p class="page-subtitle">Calcula, revisa y prepara los conceptos que complementan el bono de producción.</p>
+            <div class="profile-banner" id="profile-banner"><span class="profile-banner-icon">S</span><span><strong>Vista Supervisor</strong><small>Información limitada al equipo asignado.</small></span></div>
           </div>
-          <div class="period-control">
-            <label for="period">Período de proceso</label>
-            <div class="period-input-wrap">
-              <input id="period" type="month" value="2026-08">
-              <span class="calendar-icon" aria-hidden="true">▣</span>
+          <div class="header-actions">
+            <span class="last-sync"><i></i> Última actualización <strong id="last-sync">Sin cargar</strong></span>
+            <button class="button secondary" type="button" id="refresh-button"><span class="button-icon">↻</span> Actualizar</button>
+          </div>
+        </header>
+
+        <section class="period-toolbar" aria-label="Período de proceso">
+          <div class="period-main"><span class="calendar-badge">▣</span><div><label for="period">Período de proceso</label><strong id="period-label">Agosto 2026</strong></div></div>
+          <div class="period-actions"><label for="period">Cambiar período</label><input id="period" type="month" value="2026-08"><span class="draft-pill"><i></i> Borrador</span></div>
+        </section>
+
+        <section class="supervisor-process-waiting" id="supervisor-process-waiting" hidden>
+          <span class="waiting-icon">◷</span><div><strong>El proceso aún no ha sido iniciado por RRHH</strong><small>Cuando RRHH cargue el libro de remuneraciones y los libros centralizados, esta vista se habilitará con la planilla de variables de tu equipo.</small></div>
+        </section>
+
+        <section class="kpi-grid" aria-label="Resumen del período">
+          <article class="kpi-card blue-accent"><div class="kpi-top"><span>Trabajadores detectados</span><span class="kpi-icon blue">♙</span></div><strong id="kpi-workers">0</strong><small>En el libro provisional REX+</small></article>
+          <article class="kpi-card green-accent"><div class="kpi-top"><span>Fuentes recibidas</span><span class="kpi-icon green">✓</span></div><strong id="kpi-sources">0 / 3</strong><small>Libro y fuentes centralizadas</small></article>
+          <article class="kpi-card orange-accent"><div class="kpi-top"><span>Conceptos preparados</span><span class="kpi-icon orange">∑</span></div><strong id="kpi-concepts">0 / 6</strong><small>Automáticos y manuales</small></article>
+          <article class="kpi-card purple-accent"><div class="kpi-top"><span>Pendientes de revisión</span><span class="kpi-icon purple">!</span></div><strong id="kpi-pending">0</strong><small>Requieren revisión de Pedro</small></article>
+        </section>
+
+        <section class="workflow-strip" aria-label="Estado del proceso">
+          <div class="workflow-step active"><span>01</span><div><strong>Cargar fuentes</strong><small>Libro provisional y archivos centralizados</small></div></div>
+          <div class="workflow-line"></div>
+          <div class="workflow-step"><span>02</span><div><strong>Calcular conceptos</strong><small>Reglas y mantenedores vigentes</small></div></div>
+          <div class="workflow-line"></div>
+          <div class="workflow-step"><span>03</span><div><strong>Revisar y aprobar</strong><small>Pedro valida por grupo o período</small></div></div>
+        </section>
+
+        <section class="content-section" id="fuentes" data-visible-for="rrhh,pedro">
+          <div class="section-header"><div><p class="section-kicker">Paso 01 · Fuentes de información</p><h2>Preparemos el período</h2><p>Carga las fuentes del mes. El sistema validará estructura, período, RUT y duplicados antes de calcular.</p><span class="role-note" id="source-access-note">Vista de lectura para este perfil.</span></div><button class="text-button" type="button" id="download-template"><span>↓</span> Descargar template centralizado</button></div>
+          <div class="source-layout">
+            <article class="source-panel source-panel-main">
+              <div class="source-panel-head"><div class="source-symbol rex">RX</div><div><h3>Libro provisional REX+</h3><p>Fuente base de remuneraciones, días trabajados, HHEE y conceptos contractuales.</p></div><span class="required-badge">Requerido</span></div>
+              <div class="source-dropzone" data-drop-zone="payroll"><input id="file-payroll" data-file-input="payroll" type="file" accept=".xlsx,.xls,.csv"><button class="upload-button" type="button" data-browse="payroll"><span>⇧</span> Seleccionar archivo</button><div><strong data-file-name="payroll">Arrastra el libro provisional aquí</strong><small>Excel · se usa la hoja Detalle · una fila por RUT</small></div></div>
+              <div class="source-foot"><span class="status-pill neutral" data-source-status="payroll">Pendiente</span><span data-source-detail="payroll">Aún no se ha cargado el libro</span></div>
+            </article>
+
+            <article class="source-panel source-panel-main">
+              <div class="source-panel-head"><div class="source-symbol central">CN</div><div><h3>Fuentes centralizadas</h3><p>Combustible, TAG, multas, asignación y total de consumo por RUT.</p></div><span class="required-badge">Requerido</span></div>
+              <div class="central-upload-grid">
+                <div class="central-upload"><div><strong>Norte</strong><small>Archivo regional</small></div><label class="mini-upload" for="file-norte"><span>⇧</span> Seleccionar<input id="file-norte" data-file-input="norte" type="file" accept=".xlsx,.xls,.csv"></label><span class="status-pill neutral" data-source-status="norte">Pendiente</span><small data-file-name="norte">Sin archivo</small></div>
+                <div class="central-upload"><div><strong>Metropolitana</strong><small>Archivo regional</small></div><label class="mini-upload" for="file-metropolitana"><span>⇧</span> Seleccionar<input id="file-metropolitana" data-file-input="metropolitana" type="file" accept=".xlsx,.xls,.csv"></label><span class="status-pill neutral" data-source-status="metropolitana">Pendiente</span><small data-file-name="metropolitana">Sin archivo</small></div>
+              </div>
+              <div class="source-foot"><span class="status-pill neutral" id="central-status">Pendiente</span><span id="central-detail">Carga ambos archivos regionales</span></div>
+            </article>
+          </div>
+
+          <article class="external-source"><div class="source-symbol external">$</div><div><strong>Bono de producción</strong><p>Se incorpora como fuente externa con RUT, nombre y monto. Su motor es administrado por Milenko y no se calcula en esta plataforma.</p></div><span class="external-badge">Fuera de alcance</span></article>
+
+          <div class="validation-bar"><div class="validation-bar-title"><span class="validation-check">✓</span><div><strong>Control de carga</strong><small id="validation-summary">Esperando las fuentes del período</small></div></div><div class="validation-stats"><div><strong id="validation-files">0 / 3</strong><span>Fuentes</span></div><div><strong id="validation-rows">0</strong><span>Registros</span></div><div><strong id="validation-alerts">0</strong><span>Alertas</span></div></div></div>
+          <div class="alert-list" id="alert-list" hidden></div>
+        </section>
+
+        <section class="content-section" id="calculo" data-visible-for="supervisor,rrhh,pedro" data-supervisor-process>
+          <div class="section-header"><div><p class="section-kicker">Paso 02 · Planilla de variables</p><h2>Planilla de variables</h2><p>La planilla se precarga por RUT con los valores automáticos. El supervisor completa sólo los conceptos que requieren información manual.</p></div><button class="button primary" type="button" id="calculate-button" disabled><span class="button-icon">∑</span> Calcular conceptos</button></div>
+          <div class="concept-legend"><span><i class="legend-dot auto"></i> Automático</span><span><i class="legend-dot manual"></i> Requiere ingreso</span><span><i class="legend-dot approved"></i> Listo para revisión</span></div>
+          <div class="results-toolbar"><div class="results-filter"><span>⌕</span><input id="search-results" type="search" placeholder="Buscar por RUT o nombre"></div><select id="supervisor-filter"><option value="">Todos los supervisores</option></select><select id="result-status-filter"><option value="">Todos los estados</option><option value="PENDIENTE">Pendientes</option><option value="LISTO">Listos</option></select><span class="result-count" id="result-count">0 trabajadores</span></div>
+          <div class="results-table-wrap"><table class="results-table"><thead><tr><th>Trabajador</th><th>Supervisor</th><th>Mov. especial</th><th>Eficiencia</th><th>Concurso</th><th>HHEE</th><th>Desgaste</th><th>Maestro guía</th><th>Compensación</th><th>Estado</th></tr></thead><tbody id="results-body"><tr><td colspan="10" class="empty-table"><span>◌</span><strong>Los resultados aparecerán después de cargar las fuentes</strong><small>El libro provisional y al menos una fuente centralizada son necesarios para comenzar.</small></td></tr></tbody></table></div>
+          <div class="table-footer"><span id="table-footer-info">Sin datos calculados</span><button class="text-button" type="button" id="download-comparison" disabled><span>↓</span> Descargar diferencias piloto</button></div>
+        </section>
+
+        <section class="content-section supervisor-section" id="ingreso-supervisor" data-visible-for="supervisor,pedro" data-supervisor-process>
+          <div class="section-header"><div><p class="section-kicker">Paso 02.5 · Ingreso mínimo</p><h2>¿Qué informa el supervisor?</h2><p>El supervisor sólo completa los valores que no vienen en las fuentes automáticas. Puede trabajar por técnico y dejar cada concepto en monto o cero.</p></div><span class="role-badge">Supervisor / Pedro</span></div>
+          <div class="supervisor-entry-card">
+            <div class="supervisor-entry-title"><span class="source-symbol supervisor-symbol">✎</span><div><h3>Informar un concepto</h3><p>Selecciona el trabajador y el concepto. Los valores quedan asociados al período y al RUT.</p></div></div>
+            <div class="supervisor-form-grid">
+              <div class="form-field"><label for="supervisor-entry-filter">Supervisor</label><select id="supervisor-entry-filter"><option value="">Todos los supervisores</option></select></div>
+              <div class="form-field"><label for="supervisor-worker-select">Trabajador</label><select id="supervisor-worker-select" disabled><option value="">Carga las fuentes para comenzar</option></select></div>
+              <div class="form-field"><label for="supervisor-concept-select">Concepto</label><select id="supervisor-concept-select"><option value="concurso">Concurso</option><option value="desgasteAdicional">Desgaste adicional</option><option value="maestroGuia">Maestro guía</option><option value="compensacion">Compensación discrecional</option><option value="hhee">HHEE · cantidad de horas</option></select></div>
+              <div class="form-field"><label for="supervisor-value-input" id="supervisor-value-label">Valor a informar</label><div class="value-input-wrap"><input id="supervisor-value-input" type="number" min="0" step="1" placeholder="Ingresa un valor" disabled><span id="supervisor-value-suffix">$</span></div></div>
             </div>
-            <span class="period-status"><span></span> Borrador</span>
+            <div class="supervisor-entry-footer"><p id="supervisor-entry-help">Concurso: informa el valor definido por el mantenedor para este técnico.</p><button class="button primary" type="button" id="save-supervisor-entry" disabled><span class="button-icon">✓</span> Guardar información</button></div>
+            <div class="supervisor-feedback" id="supervisor-feedback" aria-live="polite"></div>
           </div>
+          <div class="supervisor-summary"><div class="supervisor-summary-head"><div><h3>Estado de la información manual</h3><p>Los valores automáticos se muestran como referencia y no se modifican desde este panel.</p></div><div class="manual-counters"><span><strong id="manual-complete-count">0</strong> informados</span><span><strong id="manual-pending-count">0</strong> pendientes</span></div></div><div class="manual-entry-list" id="manual-entry-list"><div class="manual-empty"><span>✎</span><strong>Aún no hay información manual</strong><small>Cuando el supervisor guarde un valor, aparecerá aquí para su revisión.</small></div></div></div>
         </section>
 
-        <section class="stepper" aria-label="Progreso del proceso">
-          <div class="step active" data-step="1"><span>1</span><div><strong>Cargar fuentes</strong><small>Archivos y formatos</small></div></div>
-          <div class="step-line"></div>
-          <div class="step" data-step="2"><span>2</span><div><strong>Revisar datos</strong><small>Validaciones y alertas</small></div></div>
-          <div class="step-line"></div>
-          <div class="step" data-step="3"><span>3</span><div><strong>Calcular conceptos</strong><small>Preparación de resultados</small></div></div>
+        <section class="content-section review-section" id="revision" data-visible-for="pedro">
+          <div class="section-header"><div><p class="section-kicker">Paso 03 · Revisión</p><h2>Revisión y aprobación de Pedro</h2><p>Pedro puede aprobar por supervisor, por período o individualmente. La aprobación queda auditada y puede reabrirse.</p></div><button class="button secondary" type="button" id="approve-visible" disabled><span class="button-icon">✓</span> Aprobar visibles</button></div>
+          <div class="approval-grid"><article class="approval-card"><span class="approval-icon pending">!</span><div><strong id="approval-pending">0</strong><small>Pendientes de revisión</small></div><span class="approval-arrow">→</span></article><article class="approval-card"><span class="approval-icon ready">✓</span><div><strong id="approval-ready">0</strong><small>Listos para aprobar</small></div><span class="approval-arrow">→</span></article><article class="approval-card"><span class="approval-icon approved">✓</span><div><strong id="approval-approved">0</strong><small>Aprobados en el período</small></div><span class="approval-arrow">→</span></article></div>
+          <div class="approval-note"><span class="notice-icon">i</span><div><strong>Flujo configurable</strong><p>Borrador → Enviado a revisión → Observado → Corregido → Aprobado. Los conceptos manuales deben informar monto o cero antes de enviarse a Pedro.</p></div></div>
         </section>
 
-        <section class="notice-bar" aria-label="Estado del proceso">
-          <span class="notice-icon">i</span>
-          <div><strong>REX+ será la fuente principal de remuneraciones.</strong><span>Los datos operativos se complementan desde Pago TAC y las novedades de RRHH.</span></div>
-          <span class="notice-tag">Motor en espera</span>
+        <section class="content-section pilot-section" id="comparacion" data-visible-for="rrhh,pedro">
+          <div class="section-header"><div><p class="section-kicker">Piloto agosto 2026</p><h2>Comparación contra Pago TAC</h2><p>Esta comparación es sólo de referencia para el piloto. El archivo Pago TAC no se usa como fuente operativa del motor.</p></div><span class="pilot-badge">Sólo diferencias</span></div>
+          <div class="pilot-empty"><span class="pilot-icon">↔</span><div><strong>La comparación estará disponible después del cálculo</strong><small>Se mostrarán únicamente las diferencias, incluso si son de $1, con RUT, concepto, valor calculado, valor de referencia y diferencia.</small></div></div>
         </section>
 
-        <section class="section-heading">
-          <div><p class="section-kicker">Fuentes principales</p><h2>Archivos del período</h2></div>
-          <p class="required-note"><span>*</span> Fuente requerida para continuar</p>
+        <section class="content-section maintainer-section" id="mantenedores" data-visible-for="pedro">
+          <div class="section-header"><div><p class="section-kicker">Administración</p><h2>Mantenedores vigentes</h2><p>Las reglas y montos estándar son configurables. Pedro puede modificar individualmente cuando el flujo lo permita.</p></div><button class="text-button" type="button"><span>⚙</span> Ver mantenedores</button></div>
+          <div class="maintainer-grid"><div><span>Fórmula HHEE</span><strong>Base ÷ 180 × 1,5</strong><small>Valor hora extraordinaria</small></div><div><span>Desgaste contractual</span><strong>Desde libro REX+</strong><small>Adicional por supervisor</small></div><div><span>Combustible y TAG</span><strong>Asignación − consumo</strong><small>Fuente centralizada por región</small></div><div><span>Conceptos de salida</span><strong>CC y contrato</strong><small>Maestro REX+ · contrato 1</small></div></div>
         </section>
 
-        <section class="source-grid" id="source-grid"></section>
-
-        <section class="section-heading secondary-heading">
-          <div><p class="section-kicker">Extensiones futuras</p><h2>Otras fuentes</h2></div>
-          <span class="coming-soon">Se habilitan en las siguientes etapas</span>
+        <section class="content-section history-section" id="historial" data-visible-for="rrhh,pedro">
+          <div class="section-header"><div><p class="section-kicker">Administración</p><h2>Historial de cargas</h2><p>Las versiones de los archivos se conservarán para trazabilidad. En la siguiente etapa se agregará la consulta de versiones y reemplazos por período.</p></div><span class="history-badge">Próxima etapa</span></div>
+          <div class="history-empty"><span>◷</span><div><strong>Aún no hay versiones guardadas en este navegador</strong><small>La persistencia, permisos y auditoría se conectarán al backend de la plataforma.</small></div></div>
         </section>
 
-        <section class="future-grid">
-          <article class="future-card"><div class="future-icon blue">Q</div><div><strong>Calidad</strong><p>Fuente para el módulo de calidad y sus validaciones.</p></div><span class="future-status">Próxima etapa</span></article>
-          <article class="future-card"><div class="future-icon orange">TOA</div><div><strong>TOA</strong><p>Conexión y fuente operacional pendiente de definición.</p></div><span class="future-status">Por definir</span></article>
-          <article class="future-card"><div class="future-icon green">+</div><div><strong>Otros respaldos</strong><p>Archivos adicionales que RRHH incorpore al proceso.</p></div><span class="future-status">Próxima etapa</span></article>
-        </section>
-
-        <section class="validation-section" aria-live="polite">
-          <div class="validation-header">
-            <div><p class="section-kicker">Control de carga</p><h2>Resumen de validación</h2></div>
-            <div class="validation-metrics">
-              <div><strong id="loaded-count">0</strong><span>Fuentes cargadas</span></div>
-              <div><strong id="row-count">0</strong><span>Filas detectadas</span></div>
-              <div><strong id="warning-count">0</strong><span>Alertas</span></div>
-            </div>
-          </div>
-          <div class="validation-empty" id="validation-empty"><span class="empty-icon">↑</span><p>Aún no hay archivos cargados</p><small>La revisión aparecerá aquí al seleccionar una fuente.</small></div>
-          <div class="validation-list" id="validation-list"></div>
-        </section>
-
-        <section class="action-bar">
-          <button class="button ghost" type="button" id="clear-button">Limpiar carga</button>
-          <div class="action-right"><span id="action-message">Carga el Libro REX+ y Pago TAC para continuar.</span><button class="button primary" type="button" id="continue-button" disabled>Continuar a revisión <span>→</span></button></div>
-        </section>
-
-        <section class="review-stage" id="review-stage" hidden aria-live="polite">
-          <div class="review-stage-head">
-            <div><p class="section-kicker">Paso 02 <span class="eyebrow-line"></span> Validación previa</p><h2>Revisar los datos antes de calcular.</h2><p>Confirma que las fuentes correspondan al período y revisa las alertas detectadas. Ningún concepto se calcula desde esta vista.</p></div>
-            <div class="review-stage-badge"><span>✓</span><strong>Fuentes recibidas</strong><small id="review-stage-status">Pendientes de revisión</small></div>
-          </div>
-          <div class="review-summary-cards">
-            <div><span>Fuentes obligatorias</span><strong id="review-required-count">0 / 2</strong></div>
-            <div><span>Registros leídos</span><strong id="review-row-count">0</strong></div>
-            <div><span>Alertas para revisar</span><strong id="review-warning-count">0</strong></div>
-          </div>
-          <div class="review-list-heading"><h3>Detalle de las fuentes</h3><span>Origen y estado de lectura</span></div>
-          <div class="review-items" id="review-items"></div>
-          <div class="review-stage-footer"><button class="button ghost" type="button" id="back-button">← Volver a la carga</button><div class="stage-footer-actions"><span>El cálculo se habilitará después de validar las fuentes.</span><button class="button primary" type="button" id="review-to-calculation-button">Continuar al cálculo <span>→</span></button></div></div>
-        </section>
-
-        <section class="calculation-stage" id="calculation-stage" hidden aria-live="polite">
-          <div class="calculation-stage-head">
-            <div><p class="section-kicker">Paso 03 <span class="eyebrow-line"></span> Preparación del cálculo</p><h2>Fuentes listas para calcular.</h2><p>La revisión terminó. En esta etapa dejamos preparados los conceptos que recibirán las reglas de cálculo en el siguiente desarrollo.</p></div>
-            <div class="calculation-stage-badge"><span>3</span><strong>Preparación lista</strong><small>Motor de conceptos pendiente</small></div>
-          </div>
-          <div class="calculation-checklist">
-            <article><span class="check-symbol">✓</span><div><strong>Libro de remuneraciones REX+</strong><p>Haberes, descuentos, días y líquido informado quedan como base de remuneraciones.</p></div><span class="status-pill valid">Fuente principal</span></article>
-            <article><span class="check-symbol">✓</span><div><strong>Pago TAC</strong><p>La producción, combustible/TAG, Concurso y la estructura de preliquidación quedan disponibles.</p></div><span class="status-pill valid">Fuente operativa</span></article>
-            <article><span class="check-symbol">✓</span><div><strong>Novedades RRHH</strong><p>Se incorpora como complemento cuando aporta HHEE, vacaciones, licencias u otros conceptos.</p></div><span class="status-pill valid">Complementaria</span></article>
-          </div>
-          <div class="calculation-notice"><span class="notice-icon">i</span><div><strong>El cálculo todavía no se ejecuta.</strong><span>La conexión con el motor de conceptos y la generación de resultados se habilitarán en la siguiente etapa.</span></div></div>
-          <div class="calculation-stage-footer"><button class="button ghost" type="button" id="calculation-back-button">← Volver a revisión</button><div class="stage-footer-actions"><span>Las fuentes quedan disponibles para la siguiente ejecución.</span><button class="button primary" type="button" id="calculate-combustible-button">Calcular combustible/TAG <span>→</span></button></div></div>
-        </section>
-
-        <section class="results-stage" id="combustible-results-stage" hidden aria-live="polite">
-          <div class="results-stage-head">
-            <div><p class="section-kicker">Paso 03 <span class="eyebrow-line"></span> Resultado de concepto</p><h2>Combustible y TAG calculado.</h2><p>Resultado construido desde la hoja Variables del archivo Pago TAC, con el detalle de cada técnico y la trazabilidad de los valores utilizados.</p></div>
-            <div class="results-stage-badge"><span>✓</span><strong>Cálculo completado</strong><small id="combustible-result-status">Variables procesadas</small></div>
-          </div>
-          <div class="result-summary-cards">
-            <div><span>Técnicos procesados</span><strong id="combustible-technician-count">0</strong></div>
-            <div><span>Total asignación + adicional</span><strong id="combustible-total-amount">$0</strong></div>
-            <div><span>Saldo del concepto</span><strong id="combustible-balance-amount">$0</strong></div>
-          </div>
-          <div class="formula-strip"><strong>Regla aplicada</strong><code>Total = Asignación de combustible y TAG + Adicional</code><span>Saldo = Total − Consumo</span></div>
-          <div class="results-list-heading"><h3>Detalle por técnico</h3><span id="combustible-source-name">Hoja Variables</span></div>
-          <div class="results-table-wrap" id="combustible-results-table"></div>
-          <div class="calculation-notice result-note"><span class="notice-icon">i</span><div><strong>Resultado listo para revisión.</strong><span>Los saldos positivos se informan como movilización especial y los negativos como eficiencia de consumo, según las reglas actuales.</span></div></div>
-          <div class="results-stage-footer"><button class="button ghost" type="button" id="combustible-back-button">← Volver a preparación</button><div class="stage-footer-actions"><span>El resultado queda disponible para la etapa de preliquidación.</span><button class="button primary" type="button" id="continue-concurso-button">Continuar con Concurso/HHEE <span>→</span></button></div></div>
-        </section>
-
-        <section class="concurso-hhee-stage" id="concurso-hhee-stage" hidden aria-live="polite">
-          <div class="concurso-hhee-head">
-            <div><p class="section-kicker">Paso 03 <span class="eyebrow-line"></span> Otros conceptos</p><h2>Concurso y HHEE preparados.</h2><p>Separamos el valor de Concurso informado en Pago TAC de las horas extraordinarias informadas por RRHH en Novedades.</p></div>
-            <div class="concurso-hhee-badge"><span>✓</span><strong>Fuentes identificadas</strong><small>Horas y monto disponibles</small></div>
-          </div>
-          <div class="concept-source-grid">
-            <article class="concept-source-panel"><div class="concept-source-title"><div class="future-icon orange">$</div><div><h3>Concurso</h3><span id="concurso-source-name">Variables</span></div></div><div class="concept-source-summary"><span>Técnicos con valor informado</span><strong id="concurso-technician-count">0</strong><span>Total concurso informado</span><strong id="concurso-total-amount">$0</strong></div><div class="concept-table-wrap" id="concurso-results-table"></div></article>
-            <article class="concept-source-panel"><div class="concept-source-title"><div class="future-icon blue">HH</div><div><h3>HHEE</h3><span id="hhee-source-name">Novedades · HHEE</span></div></div><div class="concept-source-summary"><span>Registros informados por RRHH</span><strong id="hhee-record-count">0</strong><span>Total de horas informadas</span><strong id="hhee-total-hours">0</strong><span>Total monto HHEE</span><strong id="hhee-total-amount">$0</strong></div><div class="concept-table-wrap" id="hhee-results-table"></div></article>
-          </div>
-          <div class="calculation-notice result-note"><span class="notice-icon">i</span><div><strong>HHEE se toma desde RRHH.</strong><span>La cantidad viene de Novedades. El monto usa el valor informado en Variables cuando existe y, si no viene, aplica la fórmula de la hoja Pre_Liqu TAC: sueldo base ÷ 180 × 1,5 × horas.</span></div></div>
-          <div class="results-stage-footer"><button class="button ghost" type="button" id="concurso-hhee-back-button">← Volver a Combustible/TAG</button><div class="stage-footer-actions"><span>Los conceptos quedan disponibles para la siguiente etapa.</span><button class="button primary" type="button" id="continue-preliquidation-button">Ver preliquidación <span>→</span></button></div></div>
-        </section>
-
-        <section class="preliquidation-stage" id="preliquidation-stage" hidden aria-live="polite">
-          <div class="preliquidation-head">
-            <div><p class="section-kicker">Paso 03 <span class="eyebrow-line"></span> Consolidación</p><h2>Preliquidación del trabajador.</h2><p>La vista sigue la estructura de la hoja `Pre_Liqu TAC`: identificación, producción, operatividad, otros conceptos, eficiencia y resumen.</p></div>
-            <div class="preliquidation-badge"><span>3</span><strong>Borrador de salida</strong><small id="preliquidation-period">Período 2026-07</small></div>
-          </div>
-          <div class="preliquidation-controls"><label for="preliquidation-worker">Trabajador</label><select id="preliquidation-worker"></select><span id="preliquidation-counter">0 trabajadores</span><button class="button primary preliquidation-print" type="button" id="print-preliquidation-button" disabled>Imprimir / guardar PDF</button></div>
-          <div class="preliquidation-identity"><div><span>RUT</span><strong id="preliquidation-rut">-</strong></div><div><span>Nombre TAC</span><strong id="preliquidation-name">-</strong></div><div><span>Supervisor</span><strong id="preliquidation-supervisor">-</strong></div><div><span>Área / región</span><strong id="preliquidation-area">-</strong></div></div>
-          <div class="preliquidation-detail" id="preliquidation-detail"></div>
-          <div class="calculation-notice result-note"><span class="notice-icon">i</span><div><strong>Esta vista todavía no genera el archivo Nubox o REX+.</strong><span>Primero se revisa la imputación con el formato de `Pre_Liqu TAC`. Las HHEE muestran horas, valor hora extra, monto y origen del monto.</span></div></div>
-          <div class="results-stage-footer"><button class="button ghost" type="button" id="preliquidation-back-button">← Volver a Concurso/HHEE</button><span>La salida final se habilitará después de validar esta vista.</span></div>
-        </section>
+        <footer class="page-footer"><span>NOW Remuneraciones · Plataforma modular</span><span>Fase 1 · Piloto agosto 2026</span></footer>
       </main>
-
-      <footer class="footer"><span>NOW Remuneraciones</span><span>Plataforma modular de proceso</span></footer>
     </div>
     <script src="app.js"></script>
   </body>
