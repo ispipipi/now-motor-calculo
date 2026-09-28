@@ -5,6 +5,7 @@ const state = {
   xlsxPromise: null,
   profile: 'supervisor',
   processStarted: false,
+  supervisorSubmitted: false,
 };
 
 const PROFILE_META = {
@@ -302,6 +303,7 @@ function buildMasterRows() {
       contrato: String(pick(record, ['contratoActi', 'Contrato', 'Tipo Contrato'])).trim() || '1',
       cargo: String(pick(record, ['nombre_cargo', 'Cargo'])).trim(),
       sede: String(pick(record, ['nombre_sede', 'Sede'])).trim(),
+      fechaInicio: String(pick(record, ['fechaInic', 'Fecha inicio', 'Fecha Inicio', 'fecha_inicio'])).trim(),
       centroCosto,
       ...assignmentForCenter(centroCosto),
     };
@@ -322,6 +324,7 @@ function buildPayrollRows() {
       centroCosto: String(pick(record, ['Centro de costo', 'Centro Costo', 'CC'])).trim(),
       supervisor: String(pick(record, ['Supervisor', 'NOMBRE SUPERVISOR'])).trim(),
       zona: String(pick(record, ['Zona', 'Región', 'Region', 'Sede'])).trim(),
+      fechaInicio: String(pick(record, ['Fecha inicio', 'Fecha Inicio', 'fechaInic', 'fecha_inicio'])).trim(),
       sueldoBase: parseAmount(pick(record, ['Sueldo base', 'Sueldo Base', 'VALOR SUELDO BASE'])),
       diasTrabajados: parseAmount(pick(record, ['Días trabajados', 'Dias trabajados', 'Días Trabajados'])),
       hheeHoras: parseAmount(pick(record, ['Cantidad HHEE', 'Q HHEE', 'Horas Extra', 'HHEE', 'Horas extraordinarias'])),
@@ -377,6 +380,7 @@ function buildRows() {
       contrato: masterPerson?.contrato || person.contrato,
       cargo: masterPerson?.cargo || person.cargo || '',
       sede: masterPerson?.sede || person.sede || '',
+      fechaInicio: masterPerson?.fechaInicio || person.fechaInicio || '',
       centroCosto: masterPerson?.centroCosto || person.centroCosto,
       supervisor,
       phase: assignment.phase,
@@ -398,6 +402,7 @@ function buildRows() {
       concurso: null,
       maestroGuia: null,
       compensacion: null,
+      observaciones: '',
       approved: false,
       rejected: false,
       status: 'PENDIENTE',
@@ -458,6 +463,81 @@ function renderResults() {
   updateApprovalSummary();
   renderSupervisorSelectors();
   renderManualSummary();
+}
+
+function formatStartDate(value) {
+  const text = String(value ?? '').trim();
+  if (!text) return 'Sin fecha';
+  const iso = text.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
+  if (iso) return `${iso[3].padStart(2, '0')}/${iso[2].padStart(2, '0')}/${iso[1]}`;
+  const local = text.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})/);
+  if (local) return `${local[1].padStart(2, '0')}/${local[2].padStart(2, '0')}/${local[3]}`;
+  return text;
+}
+
+function worksheetAmount(value) {
+  return value === null || value === undefined ? '' : String(value);
+}
+
+function renderSupervisorWorksheet() {
+  const body = $('#supervisor-worksheet-body');
+  if (!body) return;
+  const rows = visibleRows();
+  $('#supervisor-worksheet-count').textContent = `${formatNumber(rows.length)} trabajador${rows.length === 1 ? '' : 'es'}`;
+  if (!rows.length) {
+    body.innerHTML = '<tr><td colspan="18" class="empty-table"><span>◌</span><strong>La planilla aparecerá cuando RRHH o Admin inicien el período</strong><small>El libro provisional, el maestro REX+ y los archivos centralizados son necesarios.</small></td></tr>';
+  } else {
+    body.innerHTML = rows.map((row) => `<tr data-worker-key="${escapeHtml(row.key)}">
+      <td class="worksheet-fixed worksheet-rut">${escapeHtml(row.rut)}</td>
+      <td class="worksheet-fixed worksheet-name"><strong>${escapeHtml(row.nombre || 'Sin nombre')}</strong></td>
+      <td>${escapeHtml(row.cargo || 'Sin cargo')}</td>
+      <td>${escapeHtml(row.centroCosto || 'Sin centro')}</td>
+      <td>${escapeHtml(formatStartDate(row.fechaInicio))}</td>
+      <td class="worksheet-number">${formatNumber(row.diasTrabajados || 0)}</td>
+      <td class="worksheet-number">${formatCurrency(row.sueldoBase || 0)}</td>
+      <td class="worksheet-number">${formatNumber(row.hheeHoras || 0)}</td>
+      <td class="worksheet-number">${formatCurrency(row.hheeMonto || 0)}</td>
+      <td class="worksheet-number">${formatCurrency(row.fuel || 0)}</td>
+      <td class="worksheet-number">${formatCurrency(row.tag || 0)}</td>
+      <td class="worksheet-number">${formatCurrency(row.eficiencia || 0)}</td>
+      <td class="worksheet-number">${formatCurrency(row.desgasteContractual || 0)}</td>
+      <td><input class="worksheet-input" type="number" min="0" step="1" data-worksheet-field="concurso" data-worker-key="${escapeHtml(row.key)}" value="${escapeHtml(worksheetAmount(row.concurso))}" placeholder="$0" aria-label="Concurso para ${escapeHtml(row.nombre || row.rut)}"></td>
+      <td><input class="worksheet-input" type="number" min="0" step="1" data-worksheet-field="desgasteAdicional" data-worker-key="${escapeHtml(row.key)}" value="${escapeHtml(worksheetAmount(row.desgasteAdicional))}" placeholder="$0" aria-label="Desgaste adicional para ${escapeHtml(row.nombre || row.rut)}"></td>
+      <td><input class="worksheet-input" type="number" min="0" step="1" data-worksheet-field="maestroGuia" data-worker-key="${escapeHtml(row.key)}" value="${escapeHtml(worksheetAmount(row.maestroGuia))}" placeholder="$0" aria-label="Maestro guía para ${escapeHtml(row.nombre || row.rut)}"></td>
+      <td><input class="worksheet-input" type="number" min="0" step="1" data-worksheet-field="compensacion" data-worker-key="${escapeHtml(row.key)}" value="${escapeHtml(worksheetAmount(row.compensacion))}" placeholder="$0" aria-label="Compensación para ${escapeHtml(row.nombre || row.rut)}"></td>
+      <td><textarea class="worksheet-observation" rows="1" data-worksheet-field="observaciones" data-worker-key="${escapeHtml(row.key)}" aria-label="Observaciones para ${escapeHtml(row.nombre || row.rut)}">${escapeHtml(row.observaciones || '')}</textarea></td>
+    </tr>`).join('');
+  }
+  $('#supervisor-send-button').disabled = !rows.length || state.supervisorSubmitted;
+  const supervisorFile = $('#file-supervisor-variables');
+  if (supervisorFile) supervisorFile.disabled = state.supervisorSubmitted || !['supervisor', 'superadmin'].includes(state.profile);
+  const supervisorTemplate = $('#download-supervisor-template');
+  if (supervisorTemplate) supervisorTemplate.disabled = state.supervisorSubmitted || !['supervisor', 'gerente', 'superadmin'].includes(state.profile);
+  body.querySelectorAll('[data-worksheet-field]').forEach((field) => { field.disabled = state.supervisorSubmitted; });
+}
+
+function handleSupervisorWorksheetChange(event) {
+  const field = event.target.closest('[data-worksheet-field]');
+  if (!field || state.supervisorSubmitted) return;
+  const row = state.rows.find((item) => item.key === field.dataset.workerKey);
+  if (!row) return;
+  if (field.dataset.worksheetField === 'observaciones') {
+    row.observaciones = field.value.trim();
+    return;
+  }
+  row[field.dataset.worksheetField] = field.value.trim() === '' ? null : round(parseAmount(field.value));
+  if (field.dataset.worksheetField === 'desgasteAdicional') {
+    row.desgaste = round(row.desgasteContractual + Number(row.desgasteAdicional || 0));
+  }
+}
+
+function sendSupervisorVariables() {
+  const rows = visibleRows();
+  if (!rows.length) return;
+  state.supervisorSubmitted = true;
+  $('#supervisor-submit-feedback').className = 'supervisor-submit-feedback success';
+  $('#supervisor-submit-feedback').textContent = `Variables enviadas para revisión de Pedro · ${formatNumber(rows.length)} trabajadores del equipo de Juan Alzualde.`;
+  renderSupervisorWorksheet();
 }
 
 function updateApprovalSummary() {
@@ -545,6 +625,7 @@ function hasInputValue(value) {
 }
 
 async function handleSupervisorFile(file) {
+  if (state.supervisorSubmitted) return;
   const feedback = $('#supervisor-feedback');
   try {
     await loadXlsx();
@@ -579,6 +660,8 @@ async function handleSupervisorFile(file) {
         row.hheeMontoInformado = 0;
         row.hheeMonto = round(row.hheeHoras * row.hheeRate);
       }
+      const observations = pick(record, ['OBSERVACIONES', 'Observaciones', 'OBSERVACION', 'Comentario']);
+      if (hasInputValue(observations)) row.observaciones = String(observations).trim();
       row.desgaste = round(row.desgasteContractual + Number(row.desgasteAdicional || 0));
       row.rejected = false;
       updated += 1;
@@ -586,6 +669,7 @@ async function handleSupervisorFile(file) {
     feedback.className = 'supervisor-feedback success';
     feedback.textContent = `${updated} registro${updated === 1 ? '' : 's'} cargado${updated === 1 ? '' : 's'} desde ${file.name}${skipped ? ` · ${skipped} omitido${skipped === 1 ? '' : 's'} por no pertenecer a tu equipo` : ''}.`;
     renderResults();
+    renderSupervisorWorksheet();
   } catch (error) {
     feedback.className = 'supervisor-feedback error';
     feedback.textContent = `No se pudo leer ${file.name}: ${error.message}`;
@@ -622,12 +706,14 @@ function saveSupervisorEntry() {
 function calculate() {
   state.rows = buildRows();
   state.processStarted = true;
+  state.supervisorSubmitted = false;
   $('#kpi-workers').textContent = formatNumber(state.rows.length);
   $('#kpi-concepts').textContent = state.rows.length ? '4 / 6' : '0 / 6';
   $('#last-sync').textContent = new Intl.DateTimeFormat('es-CL', { hour: '2-digit', minute: '2-digit' }).format(new Date());
   $('#validation-summary').textContent = `${formatNumber(state.rows.length)} trabajadores listos para calcular`;
   populateSupervisorFilter();
   renderResults();
+  renderSupervisorWorksheet();
   setWorkflow(2);
   $('#calculo').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
@@ -673,6 +759,9 @@ function applyProfileView() {
   ensureViewerRows();
   $('#profile-select').value = state.profile;
   $('#profile-avatar').textContent = metadata.initials;
+  $('#page-subtitle').textContent = state.profile === 'supervisor'
+    ? 'Completa y envía las variables del personal a tu cargo.'
+    : 'Calcula, revisa y prepara los conceptos que complementan el bono de producción.';
   $('#profile-banner').querySelector('.profile-banner-icon').textContent = metadata.initials;
   $('#profile-banner').querySelector('strong').textContent = state.profile === 'supervisor' && !state.processStarted ? 'Vista Supervisor · Proceso pendiente' : metadata.banner;
   $('#profile-banner').querySelector('small').textContent = state.profile === 'supervisor' && !state.processStarted ? 'RRHH debe cargar el libro, el maestro y los libros centralizados antes de habilitar la planilla.' : metadata.detail;
@@ -704,9 +793,11 @@ function applyProfileView() {
   if (state.rows.length) {
     populateSupervisorFilter();
     renderResults();
+    renderSupervisorWorksheet();
   } else {
     renderSupervisorSelectors();
     renderManualSummary();
+    renderSupervisorWorksheet();
   }
 }
 
@@ -722,8 +813,8 @@ function downloadTemplate() {
 function downloadSupervisorTemplate() {
   loadXlsx().then(() => {
     const rows = visibleRows();
-    const headers = ['RUT', 'NOMBRE', 'CENTRO DE COSTO', 'SUPERVISOR', 'CONCURSO', 'DESGASTE ADICIONAL', 'MAESTRO GUIA', 'COMPENSACION', 'HHEE CANTIDAD'];
-    const data = [headers, ...rows.map((row) => [row.rut, row.nombre, row.centroCosto, row.supervisor, '', '', '', '', ''])];
+    const headers = ['RUT', 'NOMBRE', 'CARGO', 'CENTRO DE COSTO', 'FECHA DE INICIO', 'DÍAS TRABAJADOS', 'SUELDO BASE', 'HHEE CANTIDAD', 'HHEE MONTO', 'COMBUSTIBLE', 'TAG', 'EFICIENCIA', 'DESGASTE CONTRACTUAL', 'CONCURSO', 'DESGASTE ADICIONAL', 'MAESTRO GUIA', 'COMPENSACION', 'OBSERVACIONES'];
+    const data = [headers, ...rows.map((row) => [row.rut, row.nombre, row.cargo, row.centroCosto, formatStartDate(row.fechaInicio), row.diasTrabajados, row.sueldoBase, row.hheeHoras, row.hheeMonto, row.fuel, row.tag, row.eficiencia, row.desgasteContractual, '', '', '', '', ''])];
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, XLSX.utils.aoa_to_sheet(data), 'VARIABLES');
     XLSX.writeFile(workbook, 'Template_variables_supervisor_NOW.xlsx');
@@ -751,6 +842,8 @@ function wireEvents() {
   $('#supervisor-entry-filter').addEventListener('change', renderSupervisorSelectors);
   $('#supervisor-concept-select').addEventListener('change', updateSupervisorConceptHelp);
   $('#save-supervisor-entry').addEventListener('click', saveSupervisorEntry);
+  $('#supervisor-worksheet-body').addEventListener('change', handleSupervisorWorksheetChange);
+  $('#supervisor-send-button').addEventListener('click', sendSupervisorVariables);
   $('#profile-select').addEventListener('change', (event) => {
     state.profile = event.target.value;
     applyProfileView();

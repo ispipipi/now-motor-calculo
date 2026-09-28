@@ -26,6 +26,7 @@
           <a class="nav-item active" href="#inicio" data-nav="inicio"><span class="nav-icon">⌂</span><span>Resumen</span></a>
           <a class="nav-item" href="#fuentes" data-nav="fuentes"><span class="nav-icon">⇧</span><span>Fuentes de información</span></a>
           <a class="nav-item" href="#calculo" data-nav="calculo"><span class="nav-icon">∑</span><span>Cálculo de conceptos</span></a>
+          <a class="nav-item" href="#supervisor-planilla" data-nav="supervisor-planilla"><span class="nav-icon">▤</span><span>Planilla de variables</span></a>
           <a class="nav-item" href="#ingreso-supervisor" data-nav="ingreso-supervisor"><span class="nav-icon">✎</span><span>Ingreso supervisor</span></a>
           <a class="nav-item" href="#revision" data-nav="revision"><span class="nav-icon">✓</span><span>Revisión y aprobación</span><span class="nav-count" id="pending-count">0</span></a>
           <a class="nav-item" href="#comparacion" data-nav="comparacion"><span class="nav-icon">↔</span><span>Comparación piloto</span></a>
@@ -50,7 +51,7 @@
           <div>
             <p class="breadcrumb">NOW Remuneraciones <span>/</span> Proceso mensual</p>
             <h1>Variables remuneracionales</h1>
-            <p class="page-subtitle">Calcula, revisa y prepara los conceptos que complementan el bono de producción.</p>
+            <p class="page-subtitle" id="page-subtitle">Calcula, revisa y prepara los conceptos que complementan el bono de producción.</p>
             <div class="profile-banner" id="profile-banner"><span class="profile-banner-icon">S</span><span><strong>Vista Supervisor · Juan Alzualde</strong><small>Planilla del personal asignado al centro de costo del piloto.</small></span></div>
           </div>
           <div class="header-actions">
@@ -75,7 +76,15 @@
           <article class="kpi-card purple-accent"><div class="kpi-top"><span>Pendientes de revisión</span><span class="kpi-icon purple">!</span></div><strong id="kpi-pending">0</strong><small>Requieren revisión de Pedro</small></article>
         </section>
 
-        <section class="workflow-strip" aria-label="Estado del proceso">
+        <section class="content-section supervisor-worksheet-section" id="supervisor-planilla" data-visible-for="supervisor" data-supervisor-process>
+          <div class="section-header"><div><p class="section-kicker">Paso 02 · Planilla del equipo</p><h2>Variables del personal a cargo</h2><p>Juan Alzualde gestiona sólo el personal asignado al piloto. Los datos de REX+ y los cálculos automáticos se muestran en duro; sólo los conceptos variables y las observaciones son editables.</p></div><span class="role-badge">Supervisor · Juan Alzualde</span></div>
+          <div class="worksheet-toolbar"><div class="worksheet-legend"><span><i class="legend-dot auto"></i> Dato automático</span><span><i class="legend-dot manual"></i> Campo a informar</span></div><span class="result-count" id="supervisor-worksheet-count">0 trabajadores</span></div>
+          <div class="supervisor-file-card worksheet-file-card"><div><strong>Carga masiva opcional</strong><small>Descarga el template, completa sólo las variables y vuelve a cargarlo. La plataforma validará que los RUT pertenezcan al equipo de Juan.</small></div><div class="supervisor-file-actions"><label class="mini-upload" for="file-supervisor-variables"><span>⇧</span> Cargar Excel<input id="file-supervisor-variables" type="file" accept=".xlsx,.xls,.csv"></label><button class="text-button" type="button" id="download-supervisor-template"><span>↓</span> Descargar template</button></div></div>
+          <div class="supervisor-worksheet-wrap"><table class="supervisor-worksheet-table"><thead><tr><th>RUT</th><th>Nombre</th><th>Cargo</th><th>Centro de costo</th><th>Fecha de inicio</th><th>Días trabajados</th><th>Sueldo base</th><th>HHEE cantidad</th><th>HHEE monto</th><th>Combustible</th><th>TAG</th><th>Eficiencia</th><th>Desgaste contractual</th><th>Concurso</th><th>Desgaste adicional</th><th>Maestro guía</th><th>Compensación</th><th>Observaciones</th></tr></thead><tbody id="supervisor-worksheet-body"><tr><td colspan="18" class="empty-table"><span>◌</span><strong>La planilla aparecerá cuando RRHH o Admin inicien el período</strong><small>El libro provisional, el maestro REX+ y los archivos centralizados son necesarios.</small></td></tr></tbody></table></div>
+          <div class="supervisor-submit-bar"><div><strong>Cuando termines de completar la planilla, envíala a Pedro.</strong><small>Después del envío, Juan ya no podrá modificar estos valores desde esta vista.</small><p id="supervisor-submit-feedback" aria-live="polite"></p></div><button class="button primary" type="button" id="supervisor-send-button" disabled><span class="button-icon">➤</span> Enviar variables</button></div>
+        </section>
+
+        <section class="workflow-strip" data-visible-for="rrhh,gerente,admin,superadmin" aria-label="Estado del proceso">
           <div class="workflow-step active"><span>01</span><div><strong>Cargar fuentes</strong><small>Libro provisional y archivos centralizados</small></div></div>
           <div class="workflow-line"></div>
           <div class="workflow-step"><span>02</span><div><strong>Calcular conceptos</strong><small>Reglas y mantenedores vigentes</small></div></div>
@@ -114,7 +123,7 @@
           <div class="alert-list" id="alert-list" hidden></div>
         </section>
 
-        <section class="content-section" id="calculo" data-visible-for="supervisor,rrhh,gerente,admin,superadmin" data-supervisor-process>
+        <section class="content-section" id="calculo" data-visible-for="rrhh,gerente,admin,superadmin" data-supervisor-process>
           <div class="section-header"><div><p class="section-kicker">Paso 02 · Planilla de variables</p><h2>Planilla de variables</h2><p>El maestro REX+ asigna cada persona a su centro de costo y supervisor. El piloto calcula el grupo de Juan Alzualde; RECUPERA y MONTAJE quedan marcados como Fase 2.</p></div><button class="button primary" type="button" id="calculate-button" disabled><span class="button-icon">∑</span> <span id="calculate-button-label">Calcular conceptos</span></button></div>
           <div class="concept-legend"><span><i class="legend-dot auto"></i> Automático</span><span><i class="legend-dot manual"></i> Requiere ingreso</span><span><i class="legend-dot approved"></i> Listo para revisión</span></div>
           <div class="results-toolbar"><div class="results-filter"><span>⌕</span><input id="search-results" type="search" placeholder="Buscar por RUT o nombre"></div><select id="supervisor-filter"><option value="">Todos los supervisores</option></select><select id="result-status-filter"><option value="">Todos los estados</option><option value="PENDIENTE">Pendientes</option><option value="LISTO">Listos</option><option value="OBSERVADO">Observados</option><option value="APROBADO">Aprobados</option></select><span class="result-count" id="result-count">0 trabajadores</span></div>
@@ -122,9 +131,8 @@
           <div class="table-footer"><span id="table-footer-info">Sin datos calculados</span><button class="text-button" type="button" id="download-comparison" disabled><span>↓</span> Descargar diferencias piloto</button></div>
         </section>
 
-        <section class="content-section supervisor-section" id="ingreso-supervisor" data-visible-for="supervisor,gerente,superadmin" data-supervisor-process>
+        <section class="content-section supervisor-section" id="ingreso-supervisor" data-visible-for="gerente,superadmin" data-supervisor-process>
           <div class="section-header"><div><p class="section-kicker">Paso 02.5 · Ingreso mínimo</p><h2>¿Qué informa el supervisor?</h2><p>El supervisor completa sólo los valores solicitados. Puede cargar un Excel o informar individualmente; el Gerente puede corregirlos.</p></div><span class="role-badge">Supervisor / Gerente</span></div>
-          <div class="supervisor-file-card"><div><strong>Carga masiva opcional</strong><small>Usa el template con RUT, conceptos y cantidad de HHEE. Se aceptan sólo personas asignadas al equipo visible.</small></div><div class="supervisor-file-actions"><label class="mini-upload" for="file-supervisor-variables"><span>⇧</span> Cargar Excel<input id="file-supervisor-variables" type="file" accept=".xlsx,.xls,.csv"></label><button class="text-button" type="button" id="download-supervisor-template"><span>↓</span> Bajar template</button></div></div>
           <div class="supervisor-entry-card">
             <div class="supervisor-entry-title"><span class="source-symbol supervisor-symbol">✎</span><div><h3>Informar un concepto</h3><p>Selecciona el trabajador y el concepto. Los valores quedan asociados al período y al RUT.</p></div></div>
             <div class="supervisor-form-grid">
