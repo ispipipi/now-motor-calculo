@@ -8,16 +8,23 @@ const state = {
 };
 
 const PROFILE_META = {
-  supervisor: { label: 'Supervisor', initials: 'S', banner: 'Vista Supervisor', detail: 'Información limitada al equipo asignado.', supervisor: 'Supervisor Norte' },
-  rrhh: { label: 'RRHH', initials: 'R', banner: 'Vista RRHH', detail: 'Carga fuentes, revisa estructura y prepara el período.' },
-  pedro: { label: 'Pedro', initials: 'P', banner: 'Vista Pedro', detail: 'Revisa, corrige y aprueba los conceptos del período.' },
+  supervisor: { label: 'Supervisor', initials: 'S', banner: 'Vista Supervisor · Juan Alzualde', detail: 'Planilla del personal asignado al centro de costo del piloto.', supervisor: 'Juan Alzualde', phase: 1 },
+  rrhh: { label: 'RRHH', initials: 'R', banner: 'Vista RRHH', detail: 'Consulta todos los reportes, fuentes e historial del período.' },
+  gerente: { label: 'Gerente', initials: 'G', banner: 'Vista Gerente · Pedro Albornoz', detail: 'Aprueba, edita u observa lo reportado por supervisión.', supervisor: 'Juan Alzualde', phase: 1 },
+  superadmin: { label: 'Superadmin', initials: 'A', banner: 'Vista Superadmin · artBPO', detail: 'Procesa la información consolidada y controla las salidas.' },
 };
 
 const SOURCE_LABELS = {
   payroll: 'Libro provisional REX+',
+  master: 'Maestro de personal REX+',
   norte: 'Centralizado Norte',
   metropolitana: 'Centralizado Metropolitana',
 };
+
+const SOURCE_IDS = ['payroll', 'master', 'norte', 'metropolitana'];
+const CENTRAL_SOURCE_IDS = ['norte', 'metropolitana'];
+const PILOT_CENTERS = new Set(['TECNICO MULTISKILL', 'TERRENO']);
+const PHASE_TWO_CENTERS = new Set(['RECUPERA', 'MONTAJE']);
 
 const CENTRAL_COLUMNS = {
   tag: ['Suma de TAG', 'TAG'],
@@ -102,6 +109,13 @@ function loadXlsx() {
 }
 
 function findHeaderIndex(matrix, sourceId) {
+  if (sourceId === 'master') {
+    const masterIndex = matrix.findIndex((row) => {
+      const headers = row.map(normalize);
+      return headers.includes('EMPLEADO') && headers.includes('NOMBRE COMPLETO') && headers.includes('NOMBRE CENTRO COSTO');
+    });
+    if (masterIndex >= 0) return masterIndex;
+  }
   const index = matrix.findIndex((row) => {
     const headers = row.map(normalize);
     const rut = headers.includes('RUT') || headers.includes('RUT TAC');
@@ -142,7 +156,8 @@ async function inspectFile(file, sourceId) {
   });
   const warnings = [];
   if (sourceId === 'payroll' && !sheets.some((sheet) => normalize(sheet.name) === 'DETALLE')) warnings.push('No se encontró la hoja Detalle; se revisará la primera hoja con datos.');
-  if (sourceId !== 'payroll' && !sheets.some((sheet) => normalize(sheet.name) === 'TECNICOS')) warnings.push('No se encontró la hoja TECNICOS; verifica el template regional.');
+  if (sourceId === 'master' && !sheets.some((sheet) => sheet.header.some((cell) => normalize(cell) === 'EMPLEADO'))) warnings.push('No se encontró la estructura de maestro REX+ esperada.');
+  if (CENTRAL_SOURCE_IDS.includes(sourceId) && !sheets.some((sheet) => normalize(sheet.name) === 'TECNICOS')) warnings.push('No se encontró la hoja TECNICOS; verifica el template regional.');
   const rows = sheets.reduce((total, sheet) => total + sheet.records.length, 0);
   const duplicateRuts = findDuplicateRuts(sheets.flatMap((sheet) => sheet.records));
   if (duplicateRuts.length) warnings.push(`${duplicateRuts.length} RUT repetido${duplicateRuts.length === 1 ? '' : 's'}; se consolidará por RUT.`);
@@ -153,7 +168,7 @@ function findDuplicateRuts(records) {
   const seen = new Set();
   const duplicates = new Set();
   records.forEach((record) => {
-    const rut = normalizeRut(pick(record, ['RUT', 'RUT TAC']));
+    const rut = normalizeRut(pick(record, ['RUT', 'RUT TAC', 'empleado', 'Empleado']));
     if (!rut) return;
     if (seen.has(rut)) duplicates.add(rut);
     seen.add(rut);
@@ -203,7 +218,9 @@ function wireFileInput(sourceId) {
 
 function wireUploadButtons() {
   $$('[data-browse]').forEach((button) => button.addEventListener('click', () => $(`[data-file-input="${button.dataset.browse}"]`).click()));
-  ['payroll', 'norte', 'metropolitana'].forEach(wireFileInput);
+  [...SOURCE_IDS].forEach(wireFileInput);
+  const supervisorInput = $('#file-supervisor-variables');
+  if (supervisorInput) supervisorInput.addEventListener('change', () => { if (supervisorInput.files[0]) handleSupervisorFile(supervisorInput.files[0]); });
 }
 
 function sourceLoaded(sourceId) {
@@ -215,15 +232,15 @@ function sourceReady(sourceId) {
 }
 
 function renderSourceSummary() {
-  const loadedIds = ['payroll', 'norte', 'metropolitana'].filter(sourceLoaded);
-  const centralLoaded = ['norte', 'metropolitana'].filter(sourceLoaded);
-  state.processStarted = sourceReady('payroll') && ['norte', 'metropolitana'].every((id) => sourceReady(id));
+  const loadedIds = SOURCE_IDS.filter(sourceLoaded);
+  const centralLoaded = CENTRAL_SOURCE_IDS.filter(sourceLoaded);
+  state.processStarted = SOURCE_IDS.every(sourceReady);
   const rows = loadedIds.reduce((total, id) => total + Number(state.sources[id].report.rows || 0), 0);
   const alerts = loadedIds.reduce((total, id) => total + state.sources[id].report.warnings.length, 0);
-  $('#validation-files').textContent = `${loadedIds.length} / 3`;
+  $('#validation-files').textContent = `${loadedIds.length} / ${SOURCE_IDS.length}`;
   $('#validation-rows').textContent = formatNumber(rows);
   $('#validation-alerts').textContent = formatNumber(alerts);
-  $('#kpi-sources').textContent = `${loadedIds.length} / 3`;
+  $('#kpi-sources').textContent = `${loadedIds.length} / ${SOURCE_IDS.length}`;
   $('#validation-summary').textContent = loadedIds.length === 0 ? 'Esperando las fuentes del período' : `${loadedIds.length} fuente${loadedIds.length === 1 ? '' : 's'} recibida${loadedIds.length === 1 ? '' : 's'} · ${alerts} alerta${alerts === 1 ? '' : 's'}`;
   const centralStatus = $('#central-status');
   const centralDetail = $('#central-detail');
@@ -245,7 +262,7 @@ function renderSourceSummary() {
 }
 
 function updateCalculateState() {
-  const ready = sourceReady('payroll') && ['norte', 'metropolitana'].every((id) => sourceReady(id));
+  const ready = SOURCE_IDS.every(sourceReady);
   $('#calculate-button').disabled = !ready;
 }
 
@@ -256,6 +273,34 @@ function findSheet(report, expected) {
 function isNowCompany(record) {
   const company = String(pick(record, ['Empresa', 'Nombre empresa', 'Compañía', 'Sociedad'])).trim();
   return !company || normalize(company).includes('NOW');
+}
+
+function assignmentForCenter(value) {
+  const centroCosto = normalize(value);
+  if (PILOT_CENTERS.has(centroCosto)) return { supervisor: 'Juan Alzualde', phase: 1, phaseLabel: 'Piloto actual' };
+  if (PHASE_TWO_CENTERS.has(centroCosto)) return { supervisor: 'Mauricio Sanhueza', phase: 2, phaseLabel: 'Fase 2' };
+  return { supervisor: 'Sin asignar', phase: 2, phaseLabel: 'Fase 2' };
+}
+
+function buildMasterRows() {
+  const sheet = findSheet(state.sources.master?.report, 'Hoja 1');
+  return (sheet?.records || []).map((record) => {
+    const rut = String(pick(record, ['empleado', 'RUT', 'Rut', 'RUT TAC'])).trim();
+    if (!rut || !isNowCompany(record)) return null;
+    const centroCosto = String(pick(record, ['nombre_centro_costo', 'Centro de costo', 'Centro Costo', 'CC'])).trim();
+    return {
+      rut,
+      key: normalizeRut(rut),
+      nombre: String(pick(record, ['nombre_completo', 'Nombre', 'NOMBRE'])).trim(),
+      empresa: String(pick(record, ['nombre_empresa', 'Empresa', 'Nombre empresa'])).trim(),
+      estado: String(pick(record, ['estado', 'Estado'])).trim(),
+      contrato: String(pick(record, ['contratoActi', 'Contrato', 'Tipo Contrato'])).trim() || '1',
+      cargo: String(pick(record, ['nombre_cargo', 'Cargo'])).trim(),
+      sede: String(pick(record, ['nombre_sede', 'Sede'])).trim(),
+      centroCosto,
+      ...assignmentForCenter(centroCosto),
+    };
+  }).filter(Boolean);
 }
 
 function buildPayrollRows() {
@@ -305,11 +350,15 @@ function centralRows() {
 function buildRows() {
   const central = centralRows();
   const payroll = buildPayrollRows();
+  const master = new Map(buildMasterRows().map((person) => [person.key, person]));
   const rowsByRut = new Map();
   payroll.forEach((person) => {
     if (!rowsByRut.has(person.key)) rowsByRut.set(person.key, person);
   });
   return [...rowsByRut.values()].map((person) => {
+    const masterPerson = master.get(person.key);
+    const assignment = masterPerson || assignmentForCenter(person.centroCosto);
+    const supervisor = masterPerson?.supervisor || (assignment.supervisor !== 'Sin asignar' ? assignment.supervisor : person.supervisor || 'Sin asignar');
     const source = central.get(person.key) || { tag: 0, multa: 0, fuel: 0, assignment: 0, total: 0, region: person.zona || '' };
     const saldo = round(source.assignment - (source.tag + source.fuel));
     const movilizacion = saldo > 0 ? saldo : 0;
@@ -318,6 +367,15 @@ function buildRows() {
     const hheeMonto = person.hheeMontoInformado || round(person.hheeHoras * hheeRate);
     return {
       ...person,
+      nombre: masterPerson?.nombre || person.nombre,
+      empresa: masterPerson?.empresa || person.empresa,
+      contrato: masterPerson?.contrato || person.contrato,
+      cargo: masterPerson?.cargo || person.cargo || '',
+      sede: masterPerson?.sede || person.sede || '',
+      centroCosto: masterPerson?.centroCosto || person.centroCosto,
+      supervisor,
+      phase: assignment.phase,
+      phaseLabel: assignment.phaseLabel,
       region: source.region || person.zona,
       centralFound: central.has(person.key),
       tag: round(source.tag),
@@ -336,6 +394,7 @@ function buildRows() {
       maestroGuia: null,
       compensacion: null,
       approved: false,
+      rejected: false,
       status: 'PENDIENTE',
     };
   }).sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
@@ -343,14 +402,13 @@ function buildRows() {
 
 function resultStatus(row) {
   const manualComplete = [row.concurso, row.desgasteAdicional, row.maestroGuia, row.compensacion].every((value) => value !== null && value !== undefined);
-  return row.approved ? 'APROBADO' : (manualComplete ? 'LISTO' : 'PENDIENTE');
+  return row.approved ? 'APROBADO' : (row.rejected ? 'OBSERVADO' : (manualComplete ? 'LISTO' : 'PENDIENTE'));
 }
 
 function visibleRows() {
-  const assignedSupervisor = PROFILE_META[state.profile]?.supervisor;
-  return state.profile === 'supervisor' && assignedSupervisor
-    ? state.rows.filter((row) => row.supervisor === assignedSupervisor)
-    : state.rows;
+  const metadata = PROFILE_META[state.profile];
+  if (!metadata?.supervisor) return state.rows;
+  return state.rows.filter((row) => row.supervisor === metadata.supervisor && row.phase === metadata.phase);
 }
 
 function conceptValue(value, pending = false) {
@@ -374,11 +432,12 @@ function renderResults() {
   });
   const body = $('#results-body');
   if (!state.filteredRows.length) {
-    body.innerHTML = `<tr><td colspan="10" class="empty-table"><span>⌕</span><strong>No hay trabajadores que coincidan</strong><small>Prueba con otro RUT, nombre, supervisor o estado.</small></td></tr>`;
+    body.innerHTML = `<tr><td colspan="11" class="empty-table"><span>⌕</span><strong>No hay trabajadores que coincidan</strong><small>Prueba con otro RUT, nombre, supervisor o estado.</small></td></tr>`;
   } else {
     body.innerHTML = state.filteredRows.map((row) => `<tr class="${row.approved ? 'row-approved' : ''}">
       <td><div class="worker-cell"><strong>${escapeHtml(row.nombre || 'Sin nombre')}</strong><small>${escapeHtml(row.rut)} · ${escapeHtml(row.region || 'Sin zona')}</small></div></td>
       <td>${escapeHtml(row.supervisor || 'Sin supervisor')}</td>
+      <td><span class="phase-badge ${row.phase === 1 ? 'pilot' : 'future'}">${escapeHtml(row.phaseLabel || 'Fase 2')}</span></td>
       <td>${conceptValue(row.movilizacion)}</td>
       <td>${conceptValue(row.eficiencia)}</td>
       <td>${conceptValue(row.concurso, true)}</td>
@@ -407,6 +466,7 @@ function updateApprovalSummary() {
   $('#approval-ready').textContent = formatNumber(ready);
   $('#approval-approved').textContent = formatNumber(approved);
   $('#approve-visible').disabled = !state.filteredRows.length || state.filteredRows.some((row) => resultStatus(row) === 'PENDIENTE');
+  $('#reject-visible').disabled = !state.filteredRows.length;
 }
 
 function populateSupervisorFilter() {
@@ -419,7 +479,7 @@ const manualConceptMeta = {
   concurso: { label: 'Concurso', valueLabel: 'Monto a informar', suffix: '$', step: '1', help: 'Informa el valor definido por el mantenedor para este técnico. Si no corresponde, ingresa 0.' },
   desgasteAdicional: { label: 'Desgaste adicional', valueLabel: 'Monto adicional', suffix: '$', step: '1', help: 'La base contractual viene desde REX+. Informa sólo el adicional; el total se recalcula automáticamente.' },
   maestroGuia: { label: 'Maestro guía', valueLabel: 'Monto estándar', suffix: '$', step: '1', help: 'Selecciona al técnico que corresponde y registra el monto vigente del mantenedor. Si no corresponde, ingresa 0.' },
-  compensacion: { label: 'Compensación discrecional', valueLabel: 'Monto a informar', suffix: '$', step: '1', help: 'Informa el monto acordado para este técnico. Pedro podrá modificarlo individualmente.' },
+  compensacion: { label: 'Compensación discrecional', valueLabel: 'Monto a informar', suffix: '$', step: '1', help: 'Informa el monto acordado para este técnico. El Gerente podrá modificarlo individualmente.' },
   hhee: { label: 'HHEE · cantidad de horas', valueLabel: 'Cantidad de HHEE', suffix: 'horas', step: '0.01', help: 'La cantidad se informa aquí. El monto se recalcula con sueldo base ÷ 180 × 1,5.' },
 };
 
@@ -475,6 +535,58 @@ function renderManualSummary() {
   list.innerHTML = rows.slice(0, 8).map((row) => `<div class="manual-entry-row"><div class="manual-worker"><strong>${escapeHtml(row.nombre || 'Sin nombre')}</strong><small>${escapeHtml(row.rut)} · ${escapeHtml(row.supervisor || 'Sin supervisor')}</small></div><div class="manual-chip-list">${manualKeys.map((key) => `<span class="manual-chip ${row[key] === null || row[key] === undefined ? 'pending' : 'complete'}"><i></i>${manualConceptMeta[key].label}${row[key] === null || row[key] === undefined ? '' : ` · ${formatCurrency(row[key])}`}</span>`).join('')}</div></div>`).join('');
 }
 
+function hasInputValue(value) {
+  return String(value ?? '').trim() !== '';
+}
+
+async function handleSupervisorFile(file) {
+  const feedback = $('#supervisor-feedback');
+  try {
+    await loadXlsx();
+    const workbook = XLSX.read(await file.arrayBuffer(), { type: 'array', cellDates: true, cellText: true, raw: false });
+    const sheets = workbook.SheetNames.map((name) => {
+      const matrix = XLSX.utils.sheet_to_json(workbook.Sheets[name], { header: 1, defval: '', raw: false });
+      return { name, ...recordsFromMatrix(matrix, 'supervisor') };
+    });
+    const records = sheets.find((sheet) => sheet.records.length)?.records || [];
+    let updated = 0;
+    let skipped = 0;
+    records.forEach((record) => {
+      const key = normalizeRut(pick(record, ['RUT', 'Rut', 'Empleado']));
+      const row = state.rows.find((item) => item.key === key && visibleRows().some((visible) => visible.key === key));
+      if (!row) {
+        skipped += 1;
+        return;
+      }
+      const fields = [
+        ['concurso', ['CONCURSO', 'Concurso']],
+        ['desgasteAdicional', ['DESGASTE ADICIONAL', 'Desgaste adicional']],
+        ['maestroGuia', ['MAESTRO GUIA', 'Maestro guía', 'Maestro guia']],
+        ['compensacion', ['COMPENSACION', 'Compensación', 'Compensacion']],
+      ];
+      fields.forEach(([field, names]) => {
+        const raw = pick(record, names);
+        if (hasInputValue(raw)) row[field] = round(parseAmount(raw));
+      });
+      const hhee = pick(record, ['HHEE CANTIDAD', 'HHEE', 'Cantidad HHEE', 'Horas extra']);
+      if (hasInputValue(hhee)) {
+        row.hheeHoras = round(parseAmount(hhee));
+        row.hheeMontoInformado = 0;
+        row.hheeMonto = round(row.hheeHoras * row.hheeRate);
+      }
+      row.desgaste = round(row.desgasteContractual + Number(row.desgasteAdicional || 0));
+      row.rejected = false;
+      updated += 1;
+    });
+    feedback.className = 'supervisor-feedback success';
+    feedback.textContent = `${updated} registro${updated === 1 ? '' : 's'} cargado${updated === 1 ? '' : 's'} desde ${file.name}${skipped ? ` · ${skipped} omitido${skipped === 1 ? '' : 's'} por no pertenecer a tu equipo` : ''}.`;
+    renderResults();
+  } catch (error) {
+    feedback.className = 'supervisor-feedback error';
+    feedback.textContent = `No se pudo leer ${file.name}: ${error.message}`;
+  }
+}
+
 function saveSupervisorEntry() {
   const row = state.rows.find((item) => item.key === $('#supervisor-worker-select').value);
   const concept = $('#supervisor-concept-select').value;
@@ -495,8 +607,9 @@ function saveSupervisorEntry() {
   } else {
     row[concept] = round(value);
   }
+  row.rejected = false;
   $('#supervisor-feedback').className = 'supervisor-feedback success';
-  $('#supervisor-feedback').textContent = `${manualConceptMeta[concept].label} guardado para ${row.nombre || row.rut}.`;
+  $('#supervisor-feedback').textContent = `${manualConceptMeta[concept].label} ${state.profile === 'gerente' ? 'editado' : 'guardado'} para ${row.nombre || row.rut}.`;
   $('#supervisor-value-input').value = '';
   renderResults();
 }
@@ -524,7 +637,13 @@ function ensureViewerRows() {
 
 function approveVisible() {
   if (state.filteredRows.some((row) => resultStatus(row) === 'PENDIENTE')) return;
-  state.filteredRows.forEach((row) => { row.approved = true; });
+  state.filteredRows.forEach((row) => { row.approved = true; row.rejected = false; });
+  renderResults();
+}
+
+function rejectVisible() {
+  if (!state.filteredRows.length) return;
+  state.filteredRows.forEach((row) => { row.approved = false; row.rejected = true; });
   renderResults();
 }
 
@@ -551,18 +670,18 @@ function applyProfileView() {
   $('#profile-avatar').textContent = metadata.initials;
   $('#profile-banner').querySelector('.profile-banner-icon').textContent = metadata.initials;
   $('#profile-banner').querySelector('strong').textContent = state.profile === 'supervisor' && !state.processStarted ? 'Vista Supervisor · Proceso pendiente' : metadata.banner;
-  $('#profile-banner').querySelector('small').textContent = state.profile === 'supervisor' && !state.processStarted ? 'RRHH debe cargar las fuentes antes de habilitar la planilla.' : metadata.detail;
+  $('#profile-banner').querySelector('small').textContent = state.profile === 'supervisor' && !state.processStarted ? 'RRHH debe cargar el libro, el maestro y los libros centralizados antes de habilitar la planilla.' : metadata.detail;
   const sourceNote = $('#source-access-note');
-  sourceNote.textContent = state.profile === 'rrhh' ? 'RRHH puede cargar y reemplazar las fuentes del período.' : state.profile === 'pedro' ? 'Pedro puede consultar las fuentes y revisar sus alertas.' : 'Vista de lectura: el supervisor no reemplaza las fuentes.';
+  sourceNote.textContent = state.profile === 'rrhh' ? 'RRHH puede cargar y reemplazar las fuentes del período.' : state.profile === 'superadmin' ? 'artBPO puede consultar y procesar las fuentes consolidadas.' : 'Las fuentes se administran desde RRHH.';
   $$('[data-visible-for]').forEach((section) => {
     const profileVisible = section.dataset.visibleFor.split(',').includes(state.profile);
-    const processVisible = !section.hasAttribute('data-supervisor-process') || state.profile !== 'supervisor' || state.processStarted;
+    const processVisible = !section.hasAttribute('data-supervisor-process') || state.processStarted || ['rrhh', 'superadmin'].includes(state.profile);
     section.hidden = !profileVisible || !processVisible;
   });
   $$('[data-nav]').forEach((link) => {
     const target = document.querySelector(link.getAttribute('href'));
     const profileVisible = !target?.dataset.visibleFor || target.dataset.visibleFor.split(',').includes(state.profile);
-    const processVisible = !target?.hasAttribute('data-supervisor-process') || state.profile !== 'supervisor' || state.processStarted;
+    const processVisible = !target?.hasAttribute('data-supervisor-process') || state.processStarted || ['rrhh', 'superadmin'].includes(state.profile);
     link.hidden = !profileVisible || !processVisible;
   });
   $('#supervisor-process-waiting').hidden = state.profile !== 'supervisor' || state.processStarted;
@@ -571,7 +690,11 @@ function applyProfileView() {
   $$('[data-browse]').forEach((button) => { button.disabled = !canUpload; });
   $$('label.mini-upload').forEach((label) => label.classList.toggle('read-only', !canUpload));
   $('#download-template').disabled = !canUpload;
-  $('#calculate-button').hidden = state.profile === 'supervisor';
+  const supervisorFile = $('#file-supervisor-variables');
+  if (supervisorFile) supervisorFile.disabled = state.profile !== 'supervisor';
+  const supervisorTemplate = $('#download-supervisor-template');
+  if (supervisorTemplate) supervisorTemplate.disabled = !['supervisor', 'gerente'].includes(state.profile);
+  $('#calculate-button').hidden = ['supervisor', 'gerente'].includes(state.profile);
   if (state.rows.length) {
     populateSupervisorFilter();
     renderResults();
@@ -590,6 +713,17 @@ function downloadTemplate() {
   });
 }
 
+function downloadSupervisorTemplate() {
+  loadXlsx().then(() => {
+    const rows = visibleRows();
+    const headers = ['RUT', 'NOMBRE', 'CENTRO DE COSTO', 'SUPERVISOR', 'CONCURSO', 'DESGASTE ADICIONAL', 'MAESTRO GUIA', 'COMPENSACION', 'HHEE CANTIDAD'];
+    const data = [headers, ...rows.map((row) => [row.rut, row.nombre, row.centroCosto, row.supervisor, '', '', '', '', ''])];
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, XLSX.utils.aoa_to_sheet(data), 'VARIABLES');
+    XLSX.writeFile(workbook, 'Template_variables_supervisor_NOW.xlsx');
+  });
+}
+
 function wireNavigation() {
   $$('[data-nav]').forEach((link) => link.addEventListener('click', () => {
     $$('[data-nav]').forEach((item) => item.classList.toggle('active', item === link));
@@ -600,7 +734,9 @@ function wireEvents() {
   wireUploadButtons();
   $('#calculate-button').addEventListener('click', calculate);
   $('#approve-visible').addEventListener('click', approveVisible);
+  $('#reject-visible').addEventListener('click', rejectVisible);
   $('#download-template').addEventListener('click', downloadTemplate);
+  $('#download-supervisor-template').addEventListener('click', downloadSupervisorTemplate);
   $('#period').addEventListener('change', updatePeriod);
   $('#refresh-button').addEventListener('click', () => { renderSourceSummary(); renderResults(); });
   $('#search-results').addEventListener('input', renderResults);
