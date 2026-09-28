@@ -485,7 +485,7 @@ function renderSupervisorWorksheet() {
   const rows = visibleRows();
   $('#supervisor-worksheet-count').textContent = `${formatNumber(rows.length)} trabajador${rows.length === 1 ? '' : 'es'}`;
   if (!rows.length) {
-    body.innerHTML = '<tr><td colspan="18" class="empty-table"><span>◌</span><strong>La planilla aparecerá cuando RRHH o Admin inicien el período</strong><small>El libro provisional, el maestro REX+ y los archivos centralizados son necesarios.</small></td></tr>';
+    body.innerHTML = `<tr><td colspan="18" class="empty-table"><span>◌</span><strong>${state.processStarted ? 'No hay trabajadores asignados a este piloto' : 'La planilla está lista para recibir los datos del equipo'}</strong><small>${state.processStarted ? 'Revisa el maestro REX+ y el centro de costo asignado a Juan Alzualde.' : 'RRHH o Admin debe cargar el libro REX+, el maestro y los archivos centralizados para completar las filas.'}</small></td></tr>`;
   } else {
     body.innerHTML = rows.map((row) => `<tr data-worker-key="${escapeHtml(row.key)}">
       <td class="worksheet-fixed worksheet-rut">${escapeHtml(row.rut)}</td>
