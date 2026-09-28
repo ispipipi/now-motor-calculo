@@ -11,7 +11,8 @@ const PROFILE_META = {
   supervisor: { label: 'Supervisor', initials: 'S', banner: 'Vista Supervisor · Juan Alzualde', detail: 'Planilla del personal asignado al centro de costo del piloto.', supervisor: 'Juan Alzualde', phase: 1 },
   rrhh: { label: 'RRHH', initials: 'R', banner: 'Vista RRHH', detail: 'Consulta todos los reportes, fuentes e historial del período.' },
   gerente: { label: 'Gerente', initials: 'G', banner: 'Vista Gerente · Pedro Albornoz', detail: 'Aprueba, edita u observa lo reportado por supervisión.', supervisor: 'Juan Alzualde', phase: 1 },
-  superadmin: { label: 'Superadmin', initials: 'A', banner: 'Vista Superadmin · artBPO', detail: 'Procesa la información consolidada y controla las salidas.' },
+  admin: { label: 'Admin', initials: 'A', banner: 'Vista Admin · artBPO', detail: 'Carga fuentes, inicia y procesa el período mensual.' },
+  superadmin: { label: 'SuperAdmin', initials: 'SA', banner: 'Vista SuperAdmin', detail: 'Acceso total: mantenedores, operación y suplantación de perfiles.' },
 };
 
 const SOURCE_LABELS = {
@@ -189,6 +190,8 @@ function setSourceStatus(sourceId, level, label, detail) {
 }
 
 async function handleFile(sourceId, file) {
+  state.processStarted = false;
+  state.rows = [];
   setSourceStatus(sourceId, 'neutral', 'Revisando', 'Validando estructura…');
   const fileNode = $(`[data-file-name="${sourceId}"]`);
   if (fileNode) fileNode.textContent = `${file.name} · ${fileSize(file.size)}`;
@@ -203,6 +206,7 @@ async function handleFile(sourceId, file) {
   }
   renderSourceSummary();
   updateCalculateState();
+  applyProfileView();
 }
 
 function wireFileInput(sourceId) {
@@ -234,7 +238,6 @@ function sourceReady(sourceId) {
 function renderSourceSummary() {
   const loadedIds = SOURCE_IDS.filter(sourceLoaded);
   const centralLoaded = CENTRAL_SOURCE_IDS.filter(sourceLoaded);
-  state.processStarted = SOURCE_IDS.every(sourceReady);
   const rows = loadedIds.reduce((total, id) => total + Number(state.sources[id].report.rows || 0), 0);
   const alerts = loadedIds.reduce((total, id) => total + state.sources[id].report.warnings.length, 0);
   $('#validation-files').textContent = `${loadedIds.length} / ${SOURCE_IDS.length}`;
@@ -672,29 +675,30 @@ function applyProfileView() {
   $('#profile-banner').querySelector('strong').textContent = state.profile === 'supervisor' && !state.processStarted ? 'Vista Supervisor · Proceso pendiente' : metadata.banner;
   $('#profile-banner').querySelector('small').textContent = state.profile === 'supervisor' && !state.processStarted ? 'RRHH debe cargar el libro, el maestro y los libros centralizados antes de habilitar la planilla.' : metadata.detail;
   const sourceNote = $('#source-access-note');
-  sourceNote.textContent = state.profile === 'rrhh' ? 'RRHH puede cargar y reemplazar las fuentes del período.' : state.profile === 'superadmin' ? 'artBPO puede consultar y procesar las fuentes consolidadas.' : 'Las fuentes se administran desde RRHH.';
+  sourceNote.textContent = state.profile === 'rrhh' ? 'RRHH puede cargar y reemplazar las fuentes del período.' : state.profile === 'admin' ? 'Admin artBPO puede cargar e iniciar el proceso.' : state.profile === 'superadmin' ? 'SuperAdmin tiene acceso total para cargar, procesar y administrar el período.' : 'Las fuentes se administran desde RRHH o Admin.';
   $$('[data-visible-for]').forEach((section) => {
     const profileVisible = section.dataset.visibleFor.split(',').includes(state.profile);
-    const processVisible = !section.hasAttribute('data-supervisor-process') || state.processStarted || ['rrhh', 'superadmin'].includes(state.profile);
+    const processVisible = !section.hasAttribute('data-supervisor-process') || state.processStarted || ['rrhh', 'admin', 'superadmin'].includes(state.profile);
     section.hidden = !profileVisible || !processVisible;
   });
   $$('[data-nav]').forEach((link) => {
     const target = document.querySelector(link.getAttribute('href'));
     const profileVisible = !target?.dataset.visibleFor || target.dataset.visibleFor.split(',').includes(state.profile);
-    const processVisible = !target?.hasAttribute('data-supervisor-process') || state.processStarted || ['rrhh', 'superadmin'].includes(state.profile);
+    const processVisible = !target?.hasAttribute('data-supervisor-process') || state.processStarted || ['rrhh', 'admin', 'superadmin'].includes(state.profile);
     link.hidden = !profileVisible || !processVisible;
   });
   $('#supervisor-process-waiting').hidden = state.profile !== 'supervisor' || state.processStarted;
-  const canUpload = state.profile === 'rrhh';
+  const canUpload = ['rrhh', 'admin', 'superadmin'].includes(state.profile);
   $$('[data-file-input]').forEach((input) => { input.disabled = !canUpload; });
   $$('[data-browse]').forEach((button) => { button.disabled = !canUpload; });
   $$('label.mini-upload').forEach((label) => label.classList.toggle('read-only', !canUpload));
   $('#download-template').disabled = !canUpload;
   const supervisorFile = $('#file-supervisor-variables');
-  if (supervisorFile) supervisorFile.disabled = state.profile !== 'supervisor';
+  if (supervisorFile) supervisorFile.disabled = !['supervisor', 'superadmin'].includes(state.profile);
   const supervisorTemplate = $('#download-supervisor-template');
-  if (supervisorTemplate) supervisorTemplate.disabled = !['supervisor', 'gerente'].includes(state.profile);
+  if (supervisorTemplate) supervisorTemplate.disabled = !['supervisor', 'gerente', 'superadmin'].includes(state.profile);
   $('#calculate-button').hidden = ['supervisor', 'gerente'].includes(state.profile);
+  $('#calculate-button-label').textContent = state.profile === 'admin' ? 'Iniciar y calcular' : 'Calcular conceptos';
   if (state.rows.length) {
     populateSupervisorFilter();
     renderResults();
