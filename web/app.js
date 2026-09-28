@@ -234,6 +234,8 @@ async function loadMasterFromApi() {
       filename: file.name,
     };
     state.sources.master = { file, report };
+    state.rows = buildRows();
+    $('#kpi-workers').textContent = formatNumber(state.rows.length);
     setSourceStatus('master', 'valid', 'API conectada', `${formatNumber(records.length)} registros recibidos desde REX+`);
     renderSourceSummary();
     updateCalculateState();
@@ -395,10 +397,23 @@ function centralRows() {
 function buildRows() {
   const central = centralRows();
   const payroll = buildPayrollRows();
-  const master = new Map(buildMasterRows().map((person) => [person.key, person]));
+  const masterRows = buildMasterRows();
+  const master = new Map(masterRows.map((person) => [person.key, person]));
+  const payrollKeys = new Set(payroll.map((person) => person.key));
   const rowsByRut = new Map();
   payroll.forEach((person) => {
     if (!rowsByRut.has(person.key)) rowsByRut.set(person.key, person);
+  });
+  masterRows.forEach((person) => {
+    if (!rowsByRut.has(person.key)) rowsByRut.set(person.key, {
+      ...person,
+      sueldoBase: null,
+      diasTrabajados: null,
+      hheeHoras: null,
+      hheeMontoInformado: null,
+      desgasteContractual: null,
+      zona: person.sede || '',
+    });
   });
   return [...rowsByRut.values()].map((person) => {
     const masterPerson = master.get(person.key);
@@ -409,7 +424,7 @@ function buildRows() {
     const movilizacion = saldo > 0 ? saldo : 0;
     const eficiencia = saldo < 0 ? saldo : 0;
     const hheeRate = person.sueldoBase > 0 ? person.sueldoBase / 180 * 1.5 : 0;
-    const hheeMonto = person.hheeMontoInformado || round(person.hheeHoras * hheeRate);
+    const hheeMonto = person.hheeMontoInformado ?? (person.hheeHoras === null ? null : round(person.hheeHoras * hheeRate));
     return {
       ...person,
       nombre: masterPerson?.nombre || person.nombre,
@@ -420,6 +435,7 @@ function buildRows() {
       fechaInicio: masterPerson?.fechaInicio || person.fechaInicio || '',
       centroCosto: masterPerson?.centroCosto || person.centroCosto,
       supervisor,
+      payrollFound: payrollKeys.has(person.key),
       phase: assignment.phase,
       phaseLabel: assignment.phaseLabel,
       region: source.region || person.zona,
@@ -434,7 +450,7 @@ function buildRows() {
       eficiencia,
       hheeRate: round(hheeRate),
       hheeMonto: round(hheeMonto),
-      desgaste: round(person.desgasteContractual),
+      desgaste: person.desgasteContractual === null ? null : round(person.desgasteContractual),
       desgasteAdicional: null,
       concurso: null,
       maestroGuia: null,
@@ -516,6 +532,11 @@ function worksheetAmount(value) {
   return value === null || value === undefined ? '' : String(value);
 }
 
+function worksheetAutomatic(value, ready, currency = false) {
+  if (!ready || value === null || value === undefined) return '<span class="pending-value">Pendiente</span>';
+  return currency ? formatCurrency(value) : formatNumber(value);
+}
+
 function renderSupervisorWorksheet() {
   const body = $('#supervisor-worksheet-body');
   if (!body) return;
@@ -530,14 +551,14 @@ function renderSupervisorWorksheet() {
       <td>${escapeHtml(row.cargo || 'Sin cargo')}</td>
       <td>${escapeHtml(row.centroCosto || 'Sin centro')}</td>
       <td>${escapeHtml(formatStartDate(row.fechaInicio))}</td>
-      <td class="worksheet-number">${formatNumber(row.diasTrabajados || 0)}</td>
-      <td class="worksheet-number">${formatCurrency(row.sueldoBase || 0)}</td>
-      <td class="worksheet-number">${formatNumber(row.hheeHoras || 0)}</td>
-      <td class="worksheet-number">${formatCurrency(row.hheeMonto || 0)}</td>
-      <td class="worksheet-number">${formatCurrency(row.fuel || 0)}</td>
-      <td class="worksheet-number">${formatCurrency(row.tag || 0)}</td>
-      <td class="worksheet-number">${formatCurrency(row.eficiencia || 0)}</td>
-      <td class="worksheet-number">${formatCurrency(row.desgasteContractual || 0)}</td>
+      <td class="worksheet-number">${worksheetAutomatic(row.diasTrabajados, row.payrollFound)}</td>
+      <td class="worksheet-number">${worksheetAutomatic(row.sueldoBase, row.payrollFound, true)}</td>
+      <td class="worksheet-number">${worksheetAutomatic(row.hheeHoras, row.payrollFound)}</td>
+      <td class="worksheet-number">${worksheetAutomatic(row.hheeMonto, row.payrollFound, true)}</td>
+      <td class="worksheet-number">${worksheetAutomatic(row.fuel, row.centralFound, true)}</td>
+      <td class="worksheet-number">${worksheetAutomatic(row.tag, row.centralFound, true)}</td>
+      <td class="worksheet-number">${worksheetAutomatic(row.eficiencia, row.centralFound, true)}</td>
+      <td class="worksheet-number">${worksheetAutomatic(row.desgasteContractual, row.payrollFound, true)}</td>
       <td><input class="worksheet-input" type="number" min="0" step="1" data-worksheet-field="concurso" data-worker-key="${escapeHtml(row.key)}" value="${escapeHtml(worksheetAmount(row.concurso))}" placeholder="$0" aria-label="Concurso para ${escapeHtml(row.nombre || row.rut)}"></td>
       <td><input class="worksheet-input" type="number" min="0" step="1" data-worksheet-field="desgasteAdicional" data-worker-key="${escapeHtml(row.key)}" value="${escapeHtml(worksheetAmount(row.desgasteAdicional))}" placeholder="$0" aria-label="Desgaste adicional para ${escapeHtml(row.nombre || row.rut)}"></td>
       <td><input class="worksheet-input" type="number" min="0" step="1" data-worksheet-field="maestroGuia" data-worker-key="${escapeHtml(row.key)}" value="${escapeHtml(worksheetAmount(row.maestroGuia))}" placeholder="$0" aria-label="Maestro guía para ${escapeHtml(row.nombre || row.rut)}"></td>
