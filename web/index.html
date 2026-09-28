@@ -103,8 +103,8 @@
 
             <article class="source-panel source-panel-main">
               <div class="source-panel-head"><div class="source-symbol master">RX+</div><div><h3>Maestro de personal REX+</h3><p>RUT, nombre, empresa, cargo y centro de costo para asignar la planilla al supervisor correcto.</p></div><span class="required-badge">Requerido</span></div>
-              <div class="source-dropzone" data-drop-zone="master"><input id="file-master" data-file-input="master" type="file" accept=".xlsx,.xls,.csv"><button class="upload-button" type="button" data-browse="master"><span>⇧</span> Seleccionar archivo</button><div><strong data-file-name="master">Arrastra el maestro REX+ aquí</strong><small>Excel · columnas empleado y nombre_centro_costo</small></div></div>
-              <div class="source-foot"><span class="status-pill neutral" data-source-status="master">Pendiente</span><span data-source-detail="master">Aún no se ha cargado el maestro</span></div>
+              <div class="source-dropzone" data-drop-zone="master"><input id="file-master" data-file-input="master" type="file" accept=".xlsx,.xls,.csv"><button class="upload-button" type="button" data-browse="master"><span>⇧</span> Seleccionar archivo</button><div><strong data-file-name="master">Maestro REX+ pendiente</strong><small>La fuente principal se consulta por API · Excel sólo como respaldo</small></div></div>
+              <div class="source-foot"><span class="status-pill neutral" data-source-status="master">Pendiente</span><span data-source-detail="master">Se intentará consultar Mestro NOW desde REX+</span><button class="text-button source-api-button" type="button" id="load-master-api"><span>↻</span> Actualizar desde API</button></div>
             </article>
 
             <article class="source-panel source-panel-main">

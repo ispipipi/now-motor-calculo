@@ -4,7 +4,7 @@ const state = {
   filteredRows: [],
   xlsxPromise: null,
   profile: 'supervisor',
-  processStarted: false,
+  processStarted: true,
   supervisorSubmitted: false,
 };
 
@@ -208,6 +208,43 @@ async function handleFile(sourceId, file) {
   renderSourceSummary();
   updateCalculateState();
   applyProfileView();
+}
+
+function masterApiUrl() {
+  const query = '?empresa=NOW';
+  return location.protocol === 'file:' ? `http://127.0.0.1:8063/api/rex/master${query}` : `/api/rex/master${query}`;
+}
+
+async function loadMasterFromApi() {
+  const button = $('#load-master-api');
+  if (button) button.disabled = true;
+  setSourceStatus('master', 'neutral', 'Consultando', 'Conectando con REX+…');
+  try {
+    const response = await fetch(masterApiUrl(), { headers: { Accept: 'application/json' } });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(payload.error || `REX+ respondió ${response.status}`);
+    const records = Array.isArray(payload.rows) ? payload.rows : [];
+    if (!records.length) throw new Error('REX+ respondió sin registros para la empresa NOW.');
+    const file = { name: 'Mestro NOW · API REX+', size: 0 };
+    const report = {
+      sheets: [{ name: 'API REX+', header: Object.keys(records[0]), records }],
+      rows: records.length,
+      warnings: [],
+      level: 'valid',
+      filename: file.name,
+    };
+    state.sources.master = { file, report };
+    setSourceStatus('master', 'valid', 'API conectada', `${formatNumber(records.length)} registros recibidos desde REX+`);
+    renderSourceSummary();
+    updateCalculateState();
+    applyProfileView();
+  } catch (error) {
+    setSourceStatus('master', 'warning', 'API pendiente', error.message);
+    const detail = $('[data-source-detail="master"]');
+    if (detail) detail.textContent = `${error.message} Puedes cargar el Excel sólo como respaldo del piloto.`;
+  } finally {
+    if (button) button.disabled = !['rrhh', 'admin', 'superadmin'].includes(state.profile);
+  }
 }
 
 function wireFileInput(sourceId) {
@@ -782,6 +819,8 @@ function applyProfileView() {
   const canUpload = ['rrhh', 'admin', 'superadmin'].includes(state.profile);
   $$('[data-file-input]').forEach((input) => { input.disabled = !canUpload; });
   $$('[data-browse]').forEach((button) => { button.disabled = !canUpload; });
+  const masterApiButton = $('#load-master-api');
+  if (masterApiButton) masterApiButton.disabled = !canUpload;
   $$('label.mini-upload').forEach((label) => label.classList.toggle('read-only', !canUpload));
   $('#download-template').disabled = !canUpload;
   const supervisorFile = $('#file-supervisor-variables');
@@ -834,6 +873,7 @@ function wireEvents() {
   $('#reject-visible').addEventListener('click', rejectVisible);
   $('#download-template').addEventListener('click', downloadTemplate);
   $('#download-supervisor-template').addEventListener('click', downloadSupervisorTemplate);
+  $('#load-master-api').addEventListener('click', loadMasterFromApi);
   $('#period').addEventListener('change', updatePeriod);
   $('#refresh-button').addEventListener('click', () => { renderSourceSummary(); renderResults(); });
   $('#search-results').addEventListener('input', renderResults);
@@ -856,3 +896,4 @@ wireEvents();
 renderSourceSummary();
 updateApprovalSummary();
 applyProfileView();
+loadMasterFromApi();
