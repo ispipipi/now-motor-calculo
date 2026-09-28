@@ -38,10 +38,10 @@ npm run validate -- \
 La interfaz consulta el maestro `Mestro NOW` desde REX+ a través del proxy local `/api/rex/master`. La clave nunca se incluye en el frontend ni se versiona. Para iniciar el servidor local con la credencial entregada por REX+:
 
 ```bash
-REX_API_KEY="<tu-api-key>" npm run serve -- 8063
+REX_API_KEY="<tu-api-key>" PILOT_SOURCE_DIR="<carpeta-con-los-archivos-de-agosto>" npm run serve -- 8063
 ```
 
-Si REX+ no está disponible, Admin/RRHH puede cargar el Excel del maestro como respaldo del piloto.
+Con `PILOT_SOURCE_DIR` configurado, el piloto local puede precargar el libro de agosto y los dos archivos centralizados. Si REX+ no está disponible, Admin/RRHH puede cargar el Excel del maestro como respaldo del piloto.
 
 Pedro confirmo que los 3 ajustes RGU pendientes son ajustes manuales que no debiesen existir. El motor no debe aplicarlos para cuadrar el Ranking.
 

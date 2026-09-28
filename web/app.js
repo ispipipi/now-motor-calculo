@@ -240,12 +240,45 @@ async function loadMasterFromApi() {
     renderSourceSummary();
     updateCalculateState();
     applyProfileView();
+    return true;
   } catch (error) {
     setSourceStatus('master', 'warning', 'API pendiente', error.message);
     const detail = $('[data-source-detail="master"]');
     if (detail) detail.textContent = `${error.message} Puedes cargar el Excel sólo como respaldo del piloto.`;
+    return false;
   } finally {
     if (button) button.disabled = !['rrhh', 'admin', 'superadmin'].includes(state.profile);
+  }
+}
+
+function pilotSourceUrl(sourceId) {
+  return location.protocol === 'file:' ? `http://127.0.0.1:8063/api/pilot/source/${sourceId}` : `/api/pilot/source/${sourceId}`;
+}
+
+async function fetchPilotFile(sourceId) {
+  const response = await fetch(pilotSourceUrl(sourceId), { headers: { Accept: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' } });
+  if (!response.ok) throw new Error(`No se pudo cargar la fuente piloto ${sourceId}.`);
+  const blob = await response.blob();
+  const names = { payroll: 'LIBRO NOW AGOSTO 26.xlsx', master: 'Mestro NOW (1).xlsx', norte: 'NORTE-AGOSTO-2026.xlsx', metropolitana: 'METROPOLITANA-AGOSTO-2026.xlsx' };
+  return new File([blob], names[sourceId], { type: blob.type || 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+}
+
+async function loadAugustPilotSources() {
+  if ($('#period').value !== '2026-08') return;
+  try {
+    const apiLoaded = await loadMasterFromApi();
+    if (!apiLoaded) await handleFile('master', await fetchPilotFile('master'));
+    for (const sourceId of ['payroll', 'norte', 'metropolitana']) {
+      await handleFile(sourceId, await fetchPilotFile(sourceId));
+    }
+    if (SOURCE_IDS.every(sourceReady)) {
+      calculate();
+      // The pilot loader completes the same transition as the manual button.
+      state.processStarted = true;
+      applyProfileView();
+    }
+  } catch {
+    // The local pilot loader is optional; regular uploads remain available.
   }
 }
 
@@ -917,4 +950,4 @@ wireEvents();
 renderSourceSummary();
 updateApprovalSummary();
 applyProfileView();
-loadMasterFromApi();
+loadAugustPilotSources();

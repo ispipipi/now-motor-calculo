@@ -7,6 +7,13 @@ const webRoot = path.dirname(fileURLToPath(import.meta.url));
 const port = Number(process.env.PORT || process.argv[2] || 8063);
 const rexApiBaseUrl = process.env.REX_API_BASE_URL || 'https://rexmas-api-531866499459.us-central1.run.app';
 const rexApiKey = process.env.REX_API_KEY || '';
+const pilotSourceDir = process.env.PILOT_SOURCE_DIR || '';
+const pilotFiles = {
+  payroll: 'LIBRO NOW AGOSTO 26.xlsx',
+  master: 'Mestro NOW (1).xlsx',
+  norte: 'NORTE-AGOSTO-2026.xlsx',
+  metropolitana: 'METROPOLITANA-AGOSTO-2026.xlsx',
+};
 const mimeTypes = {
   '.css': 'text/css; charset=utf-8',
   '.html': 'text/html; charset=utf-8',
@@ -98,6 +105,43 @@ async function handleRexMaster(request, response, requestUrl) {
   return true;
 }
 
+function handlePilotSource(request, response, requestPath) {
+  if (request.method !== 'GET') {
+    jsonResponse(response, 405, { error: 'Método no permitido' });
+    return true;
+  }
+  if (!pilotSourceDir) {
+    jsonResponse(response, 404, { error: 'PILOT_SOURCE_DIR no está configurado.' });
+    return true;
+  }
+  const sourceId = requestPath.split('/').pop();
+  const filename = pilotFiles[sourceId];
+  if (!filename) {
+    jsonResponse(response, 404, { error: 'Fuente piloto no reconocida.' });
+    return true;
+  }
+  const root = path.resolve(pilotSourceDir);
+  const target = path.resolve(root, filename);
+  if (!target.startsWith(`${root}${path.sep}`)) {
+    jsonResponse(response, 403, { error: 'Acceso denegado.' });
+    return true;
+  }
+  try {
+    const info = statSync(target);
+    response.writeHead(200, {
+      'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'Content-Length': info.size,
+      'Content-Disposition': `inline; filename="${filename}"`,
+      'Cache-Control': 'no-store',
+      'Access-Control-Allow-Origin': '*',
+    });
+    createReadStream(target).pipe(response);
+  } catch {
+    jsonResponse(response, 404, { error: `No se encontró ${filename} en la carpeta piloto.` });
+  }
+  return true;
+}
+
 function safePath(requestUrl) {
   const pathname = decodeURIComponent(new URL(requestUrl, `http://localhost:${port}`).pathname);
   const relative = pathname === '/' ? 'index.html' : pathname.replace(/^\/+/, '');
@@ -109,6 +153,10 @@ const server = createServer(async (request, response) => {
   const requestPath = new URL(request.url || '/', `http://localhost:${port}`).pathname;
   if (requestPath === '/api/rex/master') {
     await handleRexMaster(request, response, request.url || '/api/rex/master');
+    return;
+  }
+  if (requestPath.startsWith('/api/pilot/source/')) {
+    handlePilotSource(request, response, requestPath);
     return;
   }
   const target = safePath(request.url || '/');
