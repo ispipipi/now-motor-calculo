@@ -274,8 +274,10 @@ function findSheet(report, expected) {
 }
 
 function isNowCompany(record) {
-  const company = String(pick(record, ['Empresa', 'Nombre empresa', 'Compañía', 'Sociedad'])).trim();
-  return !company || normalize(company).includes('NOW');
+  const namedCompany = String(pick(record, ['Nombre empresa', 'Compañía', 'Sociedad'])).trim();
+  if (namedCompany) return normalize(namedCompany).includes('NOW');
+  const companyCode = String(pick(record, ['Empresa'])).trim();
+  return !companyCode || /^\d+$/.test(companyCode) || normalize(companyCode).includes('NOW');
 }
 
 function assignmentForCenter(value) {
@@ -315,7 +317,7 @@ function buildPayrollRows() {
       rut,
       key: normalizeRut(rut),
       nombre: String(pick(record, ['Nombre', 'NOMBRE', 'Nombre TAC'])).trim(),
-      empresa: String(pick(record, ['Empresa', 'Nombre empresa'])).trim(),
+      empresa: String(pick(record, ['Nombre empresa', 'Empresa'])).trim(),
       contrato: String(pick(record, ['Contrato', 'Tipo Contrato'])).trim() || '1',
       centroCosto: String(pick(record, ['Centro de costo', 'Centro Costo', 'CC'])).trim(),
       supervisor: String(pick(record, ['Supervisor', 'NOMBRE SUPERVISOR'])).trim(),
