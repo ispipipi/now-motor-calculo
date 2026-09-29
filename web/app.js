@@ -574,6 +574,7 @@ function renderSupervisorWorksheet() {
   const body = $('#supervisor-worksheet-body');
   if (!body) return;
   const rows = visibleRows();
+  const centralSourcesReady = CENTRAL_SOURCE_IDS.every(sourceReady);
   $('#supervisor-worksheet-count').textContent = `${formatNumber(rows.length)} trabajador${rows.length === 1 ? '' : 'es'}`;
   if (!rows.length) {
     body.innerHTML = `<tr><td colspan="18" class="empty-table"><span>◌</span><strong>${state.processStarted ? 'No hay trabajadores asignados a este piloto' : 'La planilla está lista para recibir los datos del equipo'}</strong><small>${state.processStarted ? 'Revisa el maestro REX+ y el centro de costo asignado a Juan Alzualde.' : 'RRHH o Admin debe cargar el libro REX+, el maestro y los archivos centralizados para completar las filas.'}</small></td></tr>`;
@@ -588,9 +589,9 @@ function renderSupervisorWorksheet() {
       <td class="worksheet-number">${worksheetAutomatic(row.sueldoBase, row.payrollFound, true)}</td>
       <td class="worksheet-number">${worksheetAutomatic(row.hheeHoras, row.payrollFound)}</td>
       <td class="worksheet-number">${worksheetAutomatic(row.hheeMonto, row.payrollFound, true)}</td>
-      <td class="worksheet-number">${worksheetAutomatic(row.fuel, row.centralFound, true)}</td>
-      <td class="worksheet-number">${worksheetAutomatic(row.tag, row.centralFound, true)}</td>
-      <td class="worksheet-number">${worksheetAutomatic(row.eficiencia, row.centralFound, true)}</td>
+      <td class="worksheet-number">${worksheetAutomatic(row.fuel, centralSourcesReady, true)}</td>
+      <td class="worksheet-number">${worksheetAutomatic(row.tag, centralSourcesReady, true)}</td>
+      <td class="worksheet-number">${worksheetAutomatic(row.eficiencia, centralSourcesReady, true)}</td>
       <td class="worksheet-number">${worksheetAutomatic(row.desgasteContractual, row.payrollFound, true)}</td>
       <td><input class="worksheet-input" type="number" min="0" step="1" data-worksheet-field="concurso" data-worker-key="${escapeHtml(row.key)}" value="${escapeHtml(worksheetAmount(row.concurso))}" placeholder="$0" aria-label="Concurso para ${escapeHtml(row.nombre || row.rut)}"></td>
       <td><input class="worksheet-input" type="number" min="0" step="1" data-worksheet-field="desgasteAdicional" data-worker-key="${escapeHtml(row.key)}" value="${escapeHtml(worksheetAmount(row.desgasteAdicional))}" placeholder="$0" aria-label="Desgaste adicional para ${escapeHtml(row.nombre || row.rut)}"></td>
