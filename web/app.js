@@ -574,7 +574,7 @@ function renderSupervisorWorksheet() {
   const body = $('#supervisor-worksheet-body');
   if (!body) return;
   const rows = visibleRows();
-  const centralSourcesReady = CENTRAL_SOURCE_IDS.every(sourceReady);
+  const centralSourcesReady = state.processStarted && CENTRAL_SOURCE_IDS.every(sourceLoaded);
   $('#supervisor-worksheet-count').textContent = `${formatNumber(rows.length)} trabajador${rows.length === 1 ? '' : 'es'}`;
   if (!rows.length) {
     body.innerHTML = `<tr><td colspan="18" class="empty-table"><span>◌</span><strong>${state.processStarted ? 'No hay trabajadores asignados a este piloto' : 'La planilla está lista para recibir los datos del equipo'}</strong><small>${state.processStarted ? 'Revisa el maestro REX+ y el centro de costo asignado a Juan Alzualde.' : 'RRHH o Admin debe cargar el libro REX+, el maestro y los archivos centralizados para completar las filas.'}</small></td></tr>`;
